@@ -1,3 +1,4 @@
+import { QUIZ_LOCATIONS, getQuestion, publicQuestion, questionsFor } from "@/lib/content/quiz";
 import { GAME_TITLES } from "@/lib/copy";
 import { displayScore, locationLabel, projectClock, rankTeams, stationVisible, visibleStations } from "@/lib/game/logic";
 import type {
@@ -35,8 +36,14 @@ function ledger(team: Team, event: GameEvent): LedgerLine[] {
   for (const adjustment of team.adjustments) {
     lines.push({ label: adjustment.reason, points: adjustment.points, at: adjustment.at });
   }
+  for (const answer of team.answers ?? []) {
+    if (answer.points <= 0) continue;
+    const question = getQuestion(answer.questionId);
+    lines.push({ label: question?.prompt.slice(0, 72) ?? "Vraag", points: answer.points, at: answer.at });
+  }
   const raw =
     team.completions.reduce((sum, item) => sum + item.points, 0) +
+    (team.answers ?? []).reduce((sum, item) => sum + item.points, 0) +
     team.finalePoints +
     team.adjustments.reduce((sum, item) => sum + item.points, 0) -
     team.hintsUsed.reduce((sum, item) => sum + item.cost, 0);
@@ -64,10 +71,32 @@ export function toTeamSnapshot(event: GameEvent, team: Team, now: number): TeamS
   const clock = projectClock(event, now);
   const board = rankTeams(event.teams, event.tiebreaker, event.finaleOpen);
   const mine = board.find((row) => row.teamId === team.id);
-  const openStations = visibleStations(event.stations, event.rooms);
+  const openStations = visibleStations(event.stations, event.rooms).filter((station) => station.game !== "photo");
   const secretVisible = team.finaleSolved || event.resultsPublished;
   const current = event.teams.find((item) => item.id === team.id) ?? team;
   current.score = displayScore(current);
+  const answers = current.answers ?? [];
+  const visited = current.visitedRooms ?? [];
+  const solvedIds = new Set(answers.filter((item) => item.points > 0).map((item) => item.questionId));
+  const locations = QUIZ_LOCATIONS.map((location) => {
+    const questions = questionsFor(location.id);
+    const room = event.rooms.find((item) => item.id === location.id);
+    const field = location.id === "veld";
+    return {
+      id: location.id,
+      name: room?.name ?? location.name,
+      intro: location.intro,
+      available: field || Boolean(room?.available),
+      visited: field || visited.includes(location.id),
+      questionCount: questions.length,
+      solvedCount: questions.filter((question) => solvedIds.has(question.id)).length,
+    };
+  });
+  const questions = QUIZ_LOCATIONS.flatMap((location) => {
+    const card = locations.find((item) => item.id === location.id);
+    if (!card?.available || !card.visited) return [];
+    return questionsFor(location.id).map((question) => publicQuestion(question, solvedIds.has(question.id)));
+  });
 
   return {
     role: "team",
@@ -80,7 +109,7 @@ export function toTeamSnapshot(event: GameEvent, team: Team, now: number): TeamS
       score: current.score,
       rank: mine?.position ?? board.length,
       teamCount: event.teams.length,
-      completedCount: current.completions.length,
+      completedCount: current.completions.length + solvedIds.size,
       stationCount: openStations.length,
       clues: current.clues.map((clue) => ({ stationId: clue.stationId, title: clue.title, text: clue.text })),
       completions: current.completions.map((completion) => ({
@@ -119,6 +148,8 @@ export function toTeamSnapshot(event: GameEvent, team: Team, now: number): TeamS
       lobbyToken: event.lobbyToken,
       stations: openStations.map((station) => publicStation(event, station, false)),
       rooms: event.rooms.map((room) => ({ id: room.id, name: room.name, available: room.available })),
+      locations,
+      questions,
     },
   };
 }
@@ -169,7 +200,10 @@ export function toOrganizerSnapshot(event: GameEvent, now: number, includePhotos
         name: team.name,
         joinCode: team.joinCode,
         score: displayScore(team),
-        completedCount: team.completions.length,
+        completedCount: team.completions.length + (team.answers ?? []).filter((item) => item.points > 0).length,
+        writings: (team.answers ?? [])
+          .filter((item) => getQuestion(item.questionId)?.kind === "creative")
+          .map((item) => ({ prompt: getQuestion(item.questionId)?.prompt ?? "Tekst", response: item.response })),
         clueCount: team.clues.length,
         finaleSolved: team.finaleSolved,
         finaleAttempts: team.finaleAttempts,

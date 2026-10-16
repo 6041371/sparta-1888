@@ -22,6 +22,7 @@ const LINKS = [
   ["/spel", "Home"],
   ["/spel/kaart", "Kaart"],
   ["/spel/scan", "Scan"],
+  ["/spel/veld", "Veld"],
   ["/spel/aanwijzingen", "Hints"],
   ["/spel/klassement", "Stand"],
 ];

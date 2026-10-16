@@ -94,7 +94,17 @@ export interface Team {
   lastScoreAt: number | null;
   photoPrompts: Record<string, string>;
   briefingSeen: boolean;
+  answers: QuizAnswer[];
+  visitedRooms: string[];
   createdAt: number;
+}
+
+export interface QuizAnswer {
+  questionId: string;
+  correct: boolean;
+  points: number;
+  at: number;
+  response: string;
 }
 
 export interface GameEvent {
@@ -214,6 +224,29 @@ export interface PublicEvent {
   lobbyToken: string;
   stations: PublicStation[];
   rooms: { id: string; name: string; available: boolean }[];
+  locations: PublicLocation[];
+  questions: PublicQuizQuestion[];
+}
+
+export interface PublicQuizQuestion {
+  id: string;
+  locationId: string;
+  kind: "choice" | "open" | "creative";
+  prompt: string;
+  options: { id: string; label: string }[];
+  inputLabel: string;
+  minLines: number;
+  solved: boolean;
+}
+
+export interface PublicLocation {
+  id: string;
+  name: string;
+  intro: string;
+  available: boolean;
+  visited: boolean;
+  questionCount: number;
+  solvedCount: number;
 }
 
 export interface RankRow {
@@ -249,6 +282,7 @@ export interface OrganizerTeam {
   lastScoreAt: number | null;
   hintsUsed: number;
   stuck: boolean;
+  writings: { prompt: string; response: string }[];
   pendingPhotos: {
     stationId: string;
     stationName: string;

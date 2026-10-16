@@ -185,6 +185,9 @@ function Overview({
             <div>
               <b>{team.name}</b>
               <p className="small" style={{ margin: 0 }}>Aangemeld · {team.completedCount} opdrachten · {team.clueCount} aanwijzingen · zaak {team.finaleSolved ? "opgelost" : "open"}</p>
+              {team.writings.map((writing) => (
+                <p key={writing.prompt} className="small" style={{ margin: "8px 0 0" }}><b>{writing.prompt}</b><br />{writing.response}</p>
+              ))}
             </div>
             <strong>{team.score}</strong>
           </article>

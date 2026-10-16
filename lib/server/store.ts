@@ -33,6 +33,7 @@ import type {
   Team,
   TieBreaker,
 } from "@/lib/types";
+import { LOCATION_CLUES, getQuestion, gradeQuiz, questionsFor } from "@/lib/content/quiz";
 import { DEFAULT_FINALE, DEFAULT_SCORING, ROOM_CODES, ROOM_TEMPLATES, STATION_TEMPLATES, roomIdForEntryCode } from "@/lib/server/defaults";
 import { codeFeedback, getPuzzle, PUZZLES } from "@/lib/server/puzzles";
 
@@ -73,10 +74,33 @@ function reviveEvent(event: GameEvent) {
             : "lobby";
   if (!event.lobbyToken) event.lobbyToken = `lobby_${event.id.replace(/^evt_/, "")}${event.accessSalt.slice(0, 8)}`;
   if (!event.padCode) event.padCode = eventPadCode(event);
+  for (const template of ROOM_TEMPLATES) {
+    const existing = event.rooms.find((room) => room.id === template.id);
+    if (!existing) event.rooms.push({ ...template, available: false });
+    else existing.name = template.name;
+  }
+  for (const station of event.stations) {
+    if (station.game === "photo") station.enabled = false;
+    const roomId = station.roomId;
+    for (const team of event.teams) {
+      for (const clue of team.clues ?? []) {
+        if (clue.stationId === station.id) clue.stationId = `quiz:${roomId}`;
+      }
+    }
+  }
   for (const team of event.teams) {
     team.briefingSeen = Boolean(team.briefingSeen);
     team.finaleExplanation = team.finaleExplanation ?? "";
     team.finaleSuspect = team.finaleSuspect ?? null;
+    team.answers = Array.isArray(team.answers) ? team.answers : [];
+    team.visitedRooms = Array.isArray(team.visitedRooms) ? team.visitedRooms : [];
+    team.photoPrompts = team.photoPrompts ?? {};
+    const seen = new Set<string>();
+    team.clues = (team.clues ?? []).filter((clue) => {
+      if (seen.has(clue.stationId)) return false;
+      seen.add(clue.stationId);
+      return true;
+    });
   }
 }
 
@@ -178,6 +202,8 @@ function blankTeam(name: string, joinCode: string, now: number): Team {
     lastScoreAt: null,
     photoPrompts: {},
     briefingSeen: false,
+    answers: [],
+    visitedRooms: [],
     createdAt: now,
   };
 }
@@ -872,37 +898,13 @@ export function takeHint(event: GameEvent, team: Team, code: string, now: number
   };
 }
 
-export function submitPhoto(event: GameEvent, team: Team, code: string, dataUrl: unknown, now: number) {
-  const block = playBlockReason(event, now);
-  if (block) throw new GameError(block, 403);
-  const station = findLoose(event, code);
-  assertGame(station, "photo");
-  if (typeof dataUrl !== "string" || !/^data:image\/(jpeg|png);base64,/.test(dataUrl)) {
-    throw new GameError("Kies een JPEG- of PNG-foto.");
-  }
-  if (dataUrl.length > 900_000) throw new GameError("De foto is te groot. Maak hem opnieuw, iets dichter bij het team.");
-  const existing = team.completions.find((item) => item.stationId === station.id);
-  if (existing) {
-    return {
-      alreadyCompleted: true,
-      pending: existing.photo?.status === "pending",
-      points: existing.points,
-      awarded: 0,
-      score: team.score,
-      clue: { title: station.clueTitle, text: station.clueText },
-    };
-  }
-  const prompt = promptFor(team, station);
-  team.photoPrompts[station.id] = prompt;
-  const result = award(event, team, station, 0, "Foto ingestuurd. Punten volgen na beoordeling.", now, {
-    dataUrl,
-    prompt,
-    status: "pending",
-    creativity: 0,
-    teamwork: 0,
-    execution: 0,
-  });
-  return { ...result, pending: true };
+export function submitPhoto(event: GameEvent, team: Team, code: string, dataUrl: unknown, now: number): never {
+  void event;
+  void team;
+  void code;
+  void dataUrl;
+  void now;
+  throw new GameError("Foto-opdrachten horen niet meer bij dit spel.", 410);
 }
 
 export function reviewPhoto(
@@ -954,9 +956,49 @@ export function enterRoom(event: GameEvent, team: Team, roomId: string, now: num
   const room = event.rooms.find((item) => item.id === roomId);
   if (!room) throw new GameError("Deze QR-code hoort niet bij een ruimte in Het Kasteel.", 404);
   if (!room.available) throw new GameError("Deze ruimte is vandaag niet beschikbaar.", 403);
-  const station = event.stations.find((item) => item.roomId === room.id && item.enabled);
+  if (questionsFor(room.id).length > 0) {
+    if (!team.visitedRooms.includes(room.id)) team.visitedRooms.push(room.id);
+    return { href: `/spel/locatie/${room.id}` };
+  }
+  const station = event.stations.find((item) => item.roomId === room.id && item.enabled && item.game !== "photo");
   if (!station) throw new GameError("Voor deze ruimte staat vandaag geen opdracht open.", 403);
   return enterStation(event, team, station.code, now);
+}
+
+export function submitQuiz(event: GameEvent, team: Team, questionId: string, response: unknown, now: number) {
+  const question = getQuestion(questionId);
+  if (!question) throw new GameError("Deze vraag hoort niet bij het spel.", 404);
+  if (typeof response !== "string") throw new GameError("Dit antwoord is ongeldig.");
+  const text = response.replace(/[\u0000-\u001F]/g, "").trim();
+  if (text.length > 2000) throw new GameError("Dit antwoord is te lang.");
+  if (question.locationId !== "veld") {
+    const room = event.rooms.find((item) => item.id === question.locationId);
+    if (!room?.available) throw new GameError("Deze ruimte is vandaag niet beschikbaar.", 403);
+    if (!team.visitedRooms.includes(question.locationId)) throw new GameError("Scan eerst de QR-code van deze ruimte.", 403);
+  }
+  const already = team.answers.find((item) => item.questionId === question.id && item.points > 0);
+  if (already) return { correct: true, points: 0, already: true, feedback: "Deze vraag is al beloond." };
+  const block = playBlockReason(event, now);
+  if (block) throw new GameError(block, 403);
+  const graded = gradeQuiz(question, text);
+  if (!graded.correct) return { correct: false, points: 0, already: false, feedback: graded.feedback };
+  const points = event.scoring.codePoints;
+  team.answers.push({
+    questionId: question.id,
+    correct: question.kind !== "creative",
+    points,
+    at: now,
+    response: text.slice(0, 2000),
+  });
+  const clue = LOCATION_CLUES[question.locationId];
+  const key = `quiz:${question.locationId}`;
+  if (clue && question.kind !== "creative" && !team.clues.some((item) => item.stationId === key)) {
+    team.clues.push({ stationId: key, title: clue.title, text: clue.text, earnedAt: now });
+  }
+  const next = withScore(team, now);
+  team.score = next.score;
+  team.lastScoreAt = next.lastScoreAt;
+  return { correct: true, points, already: false, feedback: graded.feedback };
 }
 
 export function submitFinale(

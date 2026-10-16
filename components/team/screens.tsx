@@ -21,7 +21,7 @@ export function Dashboard() {
       <section className="stats">
         <article className="stat"><b>{team.score}</b><span>punten</span></article>
         <article className="stat"><b>{team.rank}</b><span>van {team.teamCount}</span></article>
-        <article className="stat"><b>{team.completedCount}/{team.stationCount}</b><span>stations</span></article>
+        <article className="stat"><b>{event.locations.filter((item) => item.available).reduce((sum, item) => sum + item.solvedCount, 0)}/{event.locations.filter((item) => item.available).reduce((sum, item) => sum + item.questionCount, 0)}</b><span>vragen</span></article>
         <article className="stat"><b>{team.clues.length}</b><span>aanwijzingen</span></article>
       </section>
       <article className="paper dark stack">
@@ -31,19 +31,19 @@ export function Dashboard() {
         </Link>
       </article>
       <div className="stack">
-        {event.stations.map((station) => {
-          const done = team.completions.find((item) => item.stationId === station.id);
+        {event.locations.filter((location) => location.available).map((location) => {
+          const done = location.questionCount > 0 && location.solvedCount === location.questionCount;
+          const href = location.id === "veld" ? "/spel/veld" : location.visited ? `/spel/locatie/${location.id}` : "/spel/scan";
           return (
-            <article key={station.id} className="paper spread">
+            <Link key={location.id} href={href} className="paper spread">
               <div>
-                <b>{station.locationLabel}</b>
-                <p className="small" style={{ margin: 0 }}>{station.gameTitle}</p>
+                <b>{location.name}</b>
+                <p className="small" style={{ margin: 0 }}>{location.visited ? `${location.solvedCount} van ${location.questionCount} vragen` : "Nog niet gescand"}</p>
               </div>
-              <span className="stamp">{done ? `${done.points} pt` : "Open"}</span>
-            </article>
+              <span className="stamp">{done ? "Klaar" : location.visited ? "Open" : "Scan"}</span>
+            </Link>
           );
         })}
-        {event.stations.length === 0 ? <Banner>De organisatie heeft nog geen stations opengesteld.</Banner> : null}
       </div>
       {team.ledger.length ? (
         <article className="paper stack">
@@ -103,23 +103,23 @@ export function StationMap() {
       <div>
         <p className="kicker">Het Kasteel</p>
         <h1 className="display">Kies je route</h1>
-        <p className="muted">Alleen open ruimtes staan op de kaart. De code krijg je ter plekke via de QR.</p>
+        <p className="muted">De zeven ruimtes open je met de QR-code ter plekke. Het Veld is een aparte opdracht en heeft geen QR-code.</p>
       </div>
       <div className="map">
-        {state.event.stations.map((station) => {
-          const done = state.team.completions.some((item) => item.stationId === station.id);
+        {state.event.locations.filter((location) => location.available).map((location) => {
+          const done = location.questionCount > 0 && location.solvedCount === location.questionCount;
+          const href = location.id === "veld" ? "/spel/veld" : location.visited ? `/spel/locatie/${location.id}` : "/spel/scan";
           return (
-            <Link key={station.id} href="/spel/scan" className={`zone ${done ? "done" : ""}`}>
+            <Link key={location.id} href={href} className={`zone ${done ? "done" : ""}`}>
               <span>
-                <b>{station.locationLabel}</b>
-                <small>{station.name} · {station.gameTitle}</small>
+                <b>{location.name}</b>
+                <small>{location.solvedCount}/{location.questionCount} vragen</small>
               </span>
-              <strong>{done ? "Klaar" : "Scan"}</strong>
+              <strong>{location.id === "veld" ? (done ? "Klaar" : "Open") : location.visited ? (done ? "Klaar" : "Verder") : "Scan"}</strong>
             </Link>
           );
         })}
       </div>
-      {state.event.stations.length === 0 ? <Banner>Er is nu geen station beschikbaar. Vraag de organisatie welke ruimte open is.</Banner> : null}
     </div>
   );
 }
@@ -130,18 +130,18 @@ export function ClueBook() {
   return (
     <div className="stack">
       <h1 className="display">Aanwijzingen</h1>
-      {state.event.stations.map((station) => {
-        const clue = state.team.clues.find((item) => item.stationId === station.id);
+      {state.event.locations.filter((location) => location.available && location.id !== "veld").map((location) => {
+        const clue = state.team.clues.find((item) => item.stationId === `quiz:${location.id}`);
         return clue ? (
-          <article key={station.id} className="clue">
-            <p className="kicker">{station.locationLabel}</p>
+          <article key={location.id} className="clue">
+            <p className="kicker">{location.name}</p>
             <h2 className="serif">{clue.title}</h2>
             <p className="serif">{clue.text}</p>
           </article>
         ) : (
-          <article key={station.id} className="clue sealed">
+          <article key={location.id} className="clue sealed">
             <span className="stamp">Verzegeld</span>
-            <p>{station.locationLabel} is nog niet geopend.</p>
+            <p>{location.name} is nog niet geopend.</p>
           </article>
         );
       })}
@@ -162,7 +162,7 @@ export function Board() {
           <div className="pos">{row.position}</div>
           <div>
             <b>{row.name}</b>
-            <p className="small" style={{ margin: 0 }}>{row.completedCount} stations · finale {row.finaleStatus}</p>
+            <p className="small" style={{ margin: 0 }}>{row.completedCount} vragen · finale {row.finaleStatus}</p>
           </div>
           <strong>{row.score}</strong>
         </article>

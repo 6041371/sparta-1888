@@ -7,7 +7,6 @@ import type { PublicPuzzle, PublicStation, TeamSnapshot } from "@/lib/types";
 import type { ReactionRound } from "@/lib/types";
 import { CrackTheCode } from "@/components/games/CrackTheCode";
 import { MemoryVault } from "@/components/games/MemoryVault";
-import { PhotoMission } from "@/components/games/PhotoMission";
 import { ReactionArena } from "@/components/games/ReactionArena";
 import { useTeam } from "@/components/team/TeamShell";
 import { Banner, Button, Loading } from "@/components/ui";
@@ -150,8 +149,8 @@ export function GameScreen({ code }: { code: string }) {
           onHint={() => send({ action: "hint", code })}
         />
       ) : null}
-      {!done && !outcome && entered.playable && entered.station.game === "photo" ? (
-        <PhotoMission prompt={entered.photoPrompt || "Maak een teamfoto bij dit station."} busy={busy} onSubmit={(dataUrl) => send({ action: "photo", code, dataUrl })} />
+      {!done && entered.station.game === "photo" ? (
+        <Banner>Deze foto-opdracht hoort niet meer bij het spel. Scan de QR-code van de ruimte voor de vragen.</Banner>
       ) : null}
       {outcome && !done ? (
         <article className="paper stack">

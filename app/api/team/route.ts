@@ -11,6 +11,7 @@ import {
   submitFinale,
   submitMemory,
   submitPhoto,
+  submitQuiz,
   submitReaction,
   takeHint,
 } from "@/lib/server/store";
@@ -75,8 +76,10 @@ export async function POST(request: Request) {
       }
       if (body.action === "enter-room") {
         const entered = enterRoom(event, team, String(body.roomId ?? ""), now);
+        if ("href" in entered) return entered;
         return stationPayload(event, entered);
       }
+      if (body.action === "quiz") return submitQuiz(event, team, String(body.questionId ?? ""), body.response, now);
       if (body.action === "enter") {
         return stationPayload(event, enterStation(event, team, String(body.code ?? ""), now));
       }

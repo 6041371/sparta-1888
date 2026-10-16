@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { toTeamSnapshot } from "@/lib/server/dto";
 import { DEFAULT_ANSWER } from "@/lib/server/defaults";
 import { PUZZLES } from "@/lib/server/puzzles";
-import { createStore, enterRoom, setStatus, submitCode, submitFinale, submitReaction, takeHint } from "@/lib/server/store";
+import { createStore, enterRoom, setStatus, submitCode, submitFinale, submitQuiz, submitReaction, takeHint } from "@/lib/server/store";
 import type { ReactionRound } from "@/lib/types";
 
 function rounds(correct: boolean): ReactionRound[] {
@@ -169,5 +169,48 @@ describe("opslag van een spelevenement", () => {
     const museum = await store.resolveEntry("MUSEUM", joined.token, now + 17);
     expect(museum.href).toBe("/ruimte/museum");
     await expect(store.resolveEntry("KLEED", joined.token, now + 18)).rejects.toThrow(/niet beschikbaar/i);
+  });
+
+  it("bewaart een vraag één keer en houdt teams uit elkaar", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "sparta-quiz-"));
+    const store = createStore(path.join(dir, "store.json"));
+    const now = Date.now();
+    const created = await store.createEvent({
+      name: "Vragen",
+      accessCode: "vragen-1888",
+      teamNames: ["Rood", "Wit"],
+      teamCount: 2,
+      roomIds: ["bestuurskamer"],
+      now,
+    });
+    await store.mutateOrganizer(created.token, (event, at) => setStatus(event, "start", undefined, at), now + 1);
+    const first = await store.loginTeam(created.event.teams[0].joinCode, now + 2);
+    const second = await store.loginTeam(created.event.teams[1].joinCode, now + 3);
+    await expect(
+      store.mutateTeam(first.token, (event, team, at) => submitQuiz(event, team, "bk-1", "c", at), now + 4),
+    ).rejects.toThrow(/scan/i);
+    const opened = await store.mutateTeam(first.token, (event, team, at) => enterRoom(event, team, "bestuurskamer", at), now + 5);
+    expect(opened).toEqual({ href: "/spel/locatie/bestuurskamer" });
+    await expect(
+      store.mutateTeam(first.token, (event, team, at) => enterRoom(event, team, "museum", at), now + 6),
+    ).rejects.toThrow(/niet beschikbaar/i);
+    const wrong = await store.mutateTeam(first.token, (event, team, at) => submitQuiz(event, team, "bk-1", "a", at), now + 7);
+    expect(wrong.correct).toBe(false);
+    expect(wrong.points).toBe(0);
+    const good = await store.mutateTeam(first.token, (event, team, at) => submitQuiz(event, team, "bk-1", "c", at), now + 8);
+    const again = await store.mutateTeam(first.token, (event, team, at) => submitQuiz(event, team, "bk-1", "c", at), now + 9);
+    expect(good.points).toBe(100);
+    expect(again.points).toBe(0);
+    const red = await store.teamContext(first.token, now + 10);
+    const white = await store.teamContext(second.token, now + 11);
+    expect(red.team.score).toBe(100);
+    expect(red.team.clues.some((clue) => clue.stationId === "quiz:bestuurskamer")).toBe(true);
+    expect(white.team.score).toBe(0);
+    expect(white.team.answers).toHaveLength(0);
+    const snapshot = toTeamSnapshot(red.event, red.team, now + 12);
+    expect(snapshot.event.questions.find((question) => question.id === "bk-1")?.solved).toBe(true);
+    expect(JSON.stringify(snapshot.event.questions)).not.toContain('"answer"');
+    expect(snapshot.event.locations.find((location) => location.id === "kasteel")?.available).toBe(false);
+    expect(created.event.stations.some((station) => station.game === "photo")).toBe(false);
   });
 });

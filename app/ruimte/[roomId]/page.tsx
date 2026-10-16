@@ -14,9 +14,13 @@ export default function RoomPage() {
 
   useEffect(() => {
     let active = true;
-    api<{ outcome: { station?: { code: string } } }>("/api/team", { action: "enter-room", roomId: params.roomId })
+    api<{ outcome: { href?: string; station?: { code: string } } }>("/api/team", { action: "enter-room", roomId: params.roomId })
       .then((result) => {
         if (!active) return;
+        if (result.outcome.href) {
+          router.replace(result.outcome.href);
+          return;
+        }
         const code = result.outcome.station?.code;
         if (code) router.replace(`/spel/station/${code}`);
         else setMessage("Deze ruimte kon niet worden geopend.");

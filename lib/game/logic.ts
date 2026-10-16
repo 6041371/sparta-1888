@@ -26,14 +26,15 @@ export function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-export function rawScore(team: Pick<Team, "completions" | "finalePoints" | "adjustments" | "hintsUsed">): number {
+export function rawScore(team: Pick<Team, "completions" | "finalePoints" | "adjustments" | "hintsUsed"> & { answers?: Team["answers"] }): number {
   const earned = team.completions.reduce((sum, item) => sum + item.points, 0);
+  const quiz = (team.answers ?? []).reduce((sum, item) => sum + item.points, 0);
   const hints = team.hintsUsed.reduce((sum, item) => sum + item.cost, 0);
   const adjustments = team.adjustments.reduce((sum, item) => sum + item.points, 0);
-  return earned + team.finalePoints + adjustments - hints;
+  return earned + quiz + team.finalePoints + adjustments - hints;
 }
 
-export function displayScore(team: Pick<Team, "completions" | "finalePoints" | "adjustments" | "hintsUsed">): number {
+export function displayScore(team: Pick<Team, "completions" | "finalePoints" | "adjustments" | "hintsUsed"> & { answers?: Team["answers"] }): number {
   return Math.max(0, rawScore(team));
 }
 
@@ -359,7 +360,7 @@ export function rankTeams(teams: Team[], tiebreaker: TieBreaker, finaleOpen: boo
       teamId: team.id,
       name: team.name,
       score: team.score,
-      completedCount: team.completions.length,
+      completedCount: team.completions.length + (team.answers?.filter((item) => item.points > 0).length ?? 0),
       finaleSolved: team.finaleSolved,
       finalePoints: team.finalePoints,
       finaleStatus: team.finaleSolved ? "opgelost" : finaleOpen ? "bezig" : "wachten",

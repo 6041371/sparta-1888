@@ -34,7 +34,7 @@ export const MISSION = {
     "Het dossier ligt klaar. Het onderzoek begint nu. Sparta rekent op jullie.",
   ],
   facts:
-    "De historische feiten in dit spel blijven beperkt tot wat openbaar bekend is: Sparta Rotterdam is opgericht in 1888, de clubkleuren zijn rood en wit, en de thuishaven staat bekend als Het Kasteel. De verdwijning en alle personages zijn fictie voor het teamspel. Dit zijn geen beschuldigingen aan echte personen.",
+    "De verdwijning, het archiefstuk en de verdachten zijn fictie voor het teamspel. De vragen in de ruimtes komen uit de spelbron. Dit zijn geen beschuldigingen aan echte personen.",
 };
 
 export const SUSPECTS = [

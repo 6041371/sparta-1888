@@ -35,6 +35,8 @@ function team(partial: Partial<Team> = {}): Team {
     lastScoreAt: null,
     photoPrompts: {},
     briefingSeen: false,
+    answers: [],
+    visitedRooms: [],
     createdAt: 0,
     ...partial,
   };
@@ -192,6 +194,7 @@ describe("timer, finale en ranglijst", () => {
     expect(scanTarget("https://sparta-1888.vercel.app/ruimte/museum")).toBe("/ruimte/museum");
     expect(scanTarget("MUSEUM")).toBe("/ruimte/museum");
     expect(scanTarget("bestuur")).toBe("/ruimte/bestuurskamer");
+    expect(scanTarget("KASTEEL")).toBe("/ruimte/kasteel");
     expect(scanTarget("https://spel.test/spel/station/ab12cd")).toBe("/spel/station/AB12CD");
     expect(scanTarget("k9p2lm")).toBe("/spel/station/K9P2LM");
     expect(scanTarget("dit is geen code")).toBeNull();
