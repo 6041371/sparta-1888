@@ -1,6 +1,7 @@
 import { randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
+import { BlobPreconditionFailedError, get, put } from "@vercel/blob";
 import { PHOTO_PROMPTS } from "@/lib/copy";
 import { GameError } from "@/lib/game/errors";
 import {
@@ -132,7 +133,16 @@ function blankTeam(name: string, joinCode: string, now: number): Team {
   };
 }
 
-export function createStore(filePath = path.join(process.cwd(), "data", "store.json")) {
+const BLOB_PATH = "sparta/store.json";
+
+interface LoadedDatabase {
+  db: Database;
+  etag: string | null;
+}
+
+export function createStore(filePath?: string) {
+  const resolvedPath = filePath ?? path.join(process.cwd(), "data", "store.json");
+  const useBlob = !filePath && process.env.VERCEL === "1" && Boolean(process.env.BLOB_READ_WRITE_TOKEN);
   let chain: Promise<unknown> = Promise.resolve();
 
   function lock<T>(fn: () => Promise<T>): Promise<T> {
@@ -144,23 +154,61 @@ export function createStore(filePath = path.join(process.cwd(), "data", "store.j
     return run;
   }
 
-  async function read(): Promise<Database> {
+  function parseDb(raw: string): Database {
+    const parsed = JSON.parse(raw) as Database;
+    if (!parsed.events || !parsed.sessions) return emptyDb();
+    return parsed;
+  }
+
+  async function read(): Promise<LoadedDatabase> {
+    if (useBlob) {
+      const result = await get(BLOB_PATH, { access: "private", useCache: false });
+      if (!result || result.statusCode !== 200 || !result.stream) return { db: emptyDb(), etag: null };
+      const raw = await new Response(result.stream).text();
+      return { db: parseDb(raw), etag: result.blob.etag };
+    }
     try {
-      const raw = await readFile(filePath, "utf8");
-      const parsed = JSON.parse(raw) as Database;
-      if (!parsed.events || !parsed.sessions) return emptyDb();
-      return parsed;
+      const raw = await readFile(resolvedPath, "utf8");
+      return { db: parseDb(raw), etag: null };
     } catch {
-      return emptyDb();
+      return { db: emptyDb(), etag: null };
     }
   }
 
-  async function write(db: Database): Promise<void> {
-    await mkdir(path.dirname(filePath), { recursive: true });
-    const tmp = `${filePath}.tmp`;
+  async function write(db: Database, etag: string | null): Promise<void> {
+    if (useBlob) {
+      await put(BLOB_PATH, JSON.stringify(db), {
+        access: "private",
+        addRandomSuffix: false,
+        allowOverwrite: true,
+        cacheControlMaxAge: 0,
+        contentType: "application/json",
+        ...(etag ? { ifMatch: etag } : {}),
+      });
+      return;
+    }
+    await mkdir(path.dirname(resolvedPath), { recursive: true });
+    const tmp = `${resolvedPath}.tmp`;
     await writeFile(tmp, JSON.stringify(db), "utf8");
-    await writeFile(filePath, JSON.stringify(db), "utf8");
+    await writeFile(resolvedPath, JSON.stringify(db), "utf8");
     await writeFile(tmp, "", "utf8").catch(() => undefined);
+  }
+
+  async function commit<T>(fn: (db: Database) => Promise<T> | T): Promise<T> {
+    return lock(async () => {
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        const loaded = await read();
+        const result = await fn(loaded.db);
+        try {
+          await write(loaded.db, loaded.etag);
+          return result;
+        } catch (error) {
+          if (error instanceof BlobPreconditionFailedError && attempt < 4) continue;
+          throw error;
+        }
+      }
+      throw new GameError("De server was even bezig. Probeer het nog eens.");
+    });
   }
 
   function freshCode(existing: Set<string>, length = 6): string {
@@ -194,7 +242,7 @@ export function createStore(filePath = path.join(process.cwd(), "data", "store.j
 
   return {
     async createEvent(input: CreateEventInput) {
-      return lock(async () => {
+      return commit(async (db) => {
         const now = input.now ?? Date.now();
         const name = cleanText(input.name, 80, "De evenementnaam");
         if (typeof input.accessCode !== "string" || input.accessCode.trim().length < 6) {
@@ -203,7 +251,6 @@ export function createStore(filePath = path.join(process.cwd(), "data", "store.j
         const durationMinutes = asInt(input.durationMinutes ?? 90, 10, 180, "De speelduur");
         const names = Array.isArray(input.teamNames) ? input.teamNames : [];
         const teamCount = asInt(input.teamCount ?? (names.length || 4), 1, 24, "Het aantal teams");
-        const db = await read();
         const usedJoins = new Set<string>();
         for (const event of Object.values(db.events)) {
           for (const team of event.teams) usedJoins.add(team.joinCode);
@@ -243,33 +290,28 @@ export function createStore(filePath = path.join(process.cwd(), "data", "store.j
         };
         db.events[event.id] = event;
         const token = issue(db, "organizer", event.id, null, now);
-        await write(db);
         return { event, token };
       });
     },
 
     async loginOrganizer(eventId: string, accessCode: string, now = Date.now()) {
-      return lock(async () => {
-        const db = await read();
+      return commit(async (db) => {
         const event = db.events[eventId];
         if (!event || typeof accessCode !== "string" || !verifyAccess(accessCode.trim(), event.accessHash, event.accessSalt)) {
           throw new GameError("Evenement of toegangscode klopt niet.", 401);
         }
         const token = issue(db, "organizer", event.id, null, now);
-        await write(db);
         return { event, token };
       });
     },
 
     async loginTeam(joinCode: string, now = Date.now()) {
-      return lock(async () => {
+      return commit(async (db) => {
         const code = cleanText(joinCode, 12, "De teamcode").toUpperCase();
-        const db = await read();
         for (const event of Object.values(db.events)) {
           const team = event.teams.find((item) => item.joinCode === code);
           if (!team) continue;
           const token = issue(db, "team", event.id, team.id, now);
-          await write(db);
           return { event, team, token };
         }
         throw new GameError("Deze teamcode hoort bij geen enkel team.", 401);
@@ -277,24 +319,22 @@ export function createStore(filePath = path.join(process.cwd(), "data", "store.j
     },
 
     async logout(token: string | null) {
-      return lock(async () => {
+      return commit(async (db) => {
         if (!token) return;
-        const db = await read();
         delete db.sessions[token];
-        await write(db);
       });
     },
 
     async organizerContext(token: string | null, now = Date.now()) {
       return lock(async () => {
-        const db = await read();
+        const { db } = await read();
         return requireRole(db, token, "organizer", now);
       });
     },
 
     async teamContext(token: string | null, now = Date.now()) {
       return lock(async () => {
-        const db = await read();
+        const { db } = await read();
         const found = requireRole(db, token, "team", now);
         return { event: found.event, team: found.team as Team, session: found.session };
       });
@@ -305,12 +345,9 @@ export function createStore(filePath = path.join(process.cwd(), "data", "store.j
       fn: (event: GameEvent, now: number, sessions: Record<string, Session>) => T | Promise<T>,
       now = Date.now(),
     ) {
-      return lock(async () => {
-        const db = await read();
+      return commit(async (db) => {
         const { event } = requireRole(db, token, "organizer", now);
-        const result = await fn(event, now, db.sessions);
-        await write(db);
-        return result;
+        return fn(event, now, db.sessions);
       });
     },
 
@@ -319,13 +356,10 @@ export function createStore(filePath = path.join(process.cwd(), "data", "store.j
       fn: (event: GameEvent, team: Team, now: number) => T | Promise<T>,
       now = Date.now(),
     ) {
-      return lock(async () => {
-        const db = await read();
+      return commit(async (db) => {
         const found = requireRole(db, token, "team", now);
         const team = eventTeam(found.event, found.session.teamId as string);
-        const result = await fn(found.event, team, now);
-        await write(db);
-        return result;
+        return fn(found.event, team, now);
       });
     },
   };
