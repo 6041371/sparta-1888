@@ -321,11 +321,30 @@ export function getQuestion(id: string): QuizQuestion | undefined {
 }
 
 export function normAnswer(value: string): string {
+  return answerTokens(value).join("");
+}
+
+const ANSWER_FILLER = new Set(["de", "het", "een", "en", "van", "der", "den", "te", "naar", "op", "in", "met", "voor"]);
+
+export function answerTokens(value: string): string[] {
   return value
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .toUpperCase()
-    .replace(/[^A-Z0-9]/g, "");
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter((word) => word && !ANSWER_FILLER.has(word))
+    .sort();
+}
+
+export function answersMatch(given: string, accepted: string): boolean {
+  const left = answerTokens(given);
+  const right = answerTokens(accepted);
+  if (left.length === 0 || right.length === 0) return false;
+  if (left.join(" ") === right.join(" ")) return true;
+  const have = new Set(left);
+  return right.every((word) => have.has(word));
 }
 
 export function gradeQuiz(question: QuizQuestion, response: string): { correct: boolean; feedback: string } {
@@ -345,8 +364,7 @@ export function gradeQuiz(question: QuizQuestion, response: string): { correct: 
     const correct = text === question.answer;
     return { correct, feedback: correct ? question.correctFeedback : "Dat is niet het antwoord uit de bron." };
   }
-  const given = normAnswer(text);
-  const correct = question.accept.some((item) => normAnswer(item) === given);
+  const correct = question.accept.some((item) => answersMatch(text, item));
   return { correct, feedback: correct ? question.correctFeedback : "Dat is niet het antwoord uit de bron." };
 }
 

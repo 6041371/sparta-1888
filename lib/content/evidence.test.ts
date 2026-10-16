@@ -11,23 +11,35 @@ function rooms(ids: string[]) {
   return ids;
 }
 
-function counts(assignments: Record<string, string[]>, ids: string[]) {
-  return [...ids].sort((a, b) => a.localeCompare(b)).map((id) => assignments[id].length);
+function sequence(assignments: Record<string, string[]>, ids: string[]) {
+  const order = ["bestuurskamer", "perskamer", "tribune", "museum", "kasteel", "kleedkamer", "deelderzaal"];
+  return [...ids].sort((a, b) => order.indexOf(a) - order.indexOf(b) || a.localeCompare(b)).flatMap((id) => assignments[id]);
 }
 
 describe("bewijsverdeling", () => {
   const ids = ["bestuurskamer", "perskamer", "tribune", "museum", "kasteel", "kleedkamer", "deelderzaal"];
 
-  it("geeft bij zeven kamers één bewijsstuk per kamer", () => {
+  it("geeft bij zeven kamers één bewijsstuk per kamer, op volgorde", () => {
     const assigned = distributeEvidence(EVIDENCE_ITEMS, rooms(ids));
-    expect(counts(assigned, ids)).toEqual([1, 1, 1, 1, 1, 1, 1]);
+    expect(sequence(assigned, ids)).toEqual(EVIDENCE_ITEMS.map((item) => item.id));
   });
 
-  it("verdeelt zes, vier, drie en één kamer gelijkmatig", () => {
-    expect(counts(distributeEvidence(EVIDENCE_ITEMS, ids.slice(0, 6)), ids.slice(0, 6))).toEqual([2, 1, 1, 1, 1, 1]);
-    expect(counts(distributeEvidence(EVIDENCE_ITEMS, ids.slice(0, 4)), ids.slice(0, 4))).toEqual([2, 2, 2, 1]);
-    expect(counts(distributeEvidence(EVIDENCE_ITEMS, ids.slice(0, 3)), ids.slice(0, 3))).toEqual([3, 2, 2]);
-    expect(counts(distributeEvidence(EVIDENCE_ITEMS, ["museum"]), ["museum"])).toEqual([7]);
+  it("verdeelt zes, vier, drie en één kamer gelijkmatig en in volgorde", () => {
+    const six = distributeEvidence(EVIDENCE_ITEMS, ids.slice(0, 6));
+    expect(ids.slice(0, 6).map((id) => six[id].length).sort((a, b) => b - a)).toEqual([2, 1, 1, 1, 1, 1]);
+    expect(sequence(six, ids.slice(0, 6)).slice(0, 2)).toEqual(["polaroid_1", "security_camera"]);
+    expect(sequence(six, ids.slice(0, 6)).at(-1)).toBe("sale_ad");
+
+    const four = distributeEvidence(EVIDENCE_ITEMS, ids.slice(0, 4));
+    expect(ids.slice(0, 4).map((id) => four[id].length)).toEqual([2, 2, 2, 1]);
+    expect(four.museum).toEqual(["sale_ad"]);
+    expect(four.tribune).toEqual(["polaroid_2", "transport_document"]);
+
+    const three = distributeEvidence(EVIDENCE_ITEMS, ids.slice(0, 3));
+    expect(ids.slice(0, 3).map((id) => three[id].length)).toEqual([3, 2, 2]);
+    expect(three.tribune).toEqual(["transport_document", "sale_ad"]);
+
+    expect(distributeEvidence(EVIDENCE_ITEMS, ["museum"]).museum).toEqual(EVIDENCE_ITEMS.map((item) => item.id));
   });
 
   it("laat bij nul kamers een lege toewijzing achter", () => {

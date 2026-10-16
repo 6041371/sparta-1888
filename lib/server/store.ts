@@ -189,10 +189,10 @@ function availableRoomIds(event: GameEvent): string[] {
 
 function ensureAssignments(event: GameEvent) {
   const key = availableRoomIds(event).join(",");
-  if (event.assignmentVersion === 1 && event.assignmentKey === key && event.evidenceAssignments) return;
+  if (event.assignmentVersion === 2 && event.assignmentKey === key && event.evidenceAssignments) return;
   event.evidenceAssignments = distributeEvidence(EVIDENCE_ITEMS, availableRoomIds(event));
   event.assignmentKey = key;
-  event.assignmentVersion = 1;
+  event.assignmentVersion = 2;
 }
 
 function hashString(value: string): number {

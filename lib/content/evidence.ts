@@ -60,14 +60,23 @@ export const EVIDENCE_ITEMS: EvidenceItem[] = [
 
 const EVIDENCE_IDS = new Set(EVIDENCE_ITEMS.map((item) => item.id));
 
+const ROOM_ORDER = ["bestuurskamer", "perskamer", "tribune", "museum", "kasteel", "kleedkamer", "deelderzaal"];
+
 export function distributeEvidence(evidenceItems: EvidenceItem[], roomIds: string[]): Record<string, string[]> {
-  const rooms = [...roomIds].sort((a, b) => a.localeCompare(b));
+  const rank = new Map(ROOM_ORDER.map((id, index) => [id, index]));
+  const rooms = [...roomIds].sort((a, b) => (rank.get(a) ?? 99) - (rank.get(b) ?? 99) || a.localeCompare(b));
   const evidence = [...evidenceItems].sort((a, b) => a.order - b.order);
   if (rooms.length === 0) return {};
   const assignments = Object.fromEntries(rooms.map((id) => [id, [] as string[]]));
-  evidence.forEach((item, index) => {
-    assignments[rooms[index % rooms.length]].push(item.id);
-  });
+  const base = Math.floor(evidence.length / rooms.length);
+  let extra = evidence.length % rooms.length;
+  let cursor = 0;
+  for (const id of rooms) {
+    const count = base + (extra > 0 ? 1 : 0);
+    if (extra > 0) extra -= 1;
+    assignments[id] = evidence.slice(cursor, cursor + count).map((item) => item.id);
+    cursor += count;
+  }
   return assignments;
 }
 

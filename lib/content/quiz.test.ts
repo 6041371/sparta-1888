@@ -35,6 +35,13 @@ describe("vragen uit de bron", () => {
     expect(bok && gradeQuiz(bok, "a").correct).toBe(false);
     expect(cricket && gradeQuiz(cricket, "cricket").correct).toBe(true);
     expect(cricket && gradeQuiz(cricket, "voetbal").correct).toBe(false);
+    const colors = QUIZ_QUESTIONS.find((question) => question.id === "mu-4");
+    const utrecht = QUIZ_QUESTIONS.find((question) => question.id === "vd-strootman");
+    expect(colors && gradeQuiz(colors, "rood wit").correct).toBe(true);
+    expect(colors && gradeQuiz(colors, "Wit en rood").correct).toBe(true);
+    expect(colors && gradeQuiz(colors, "blauw").correct).toBe(false);
+    expect(utrecht && gradeQuiz(utrecht, "fc utrecht").correct).toBe(true);
+    expect(utrecht && gradeQuiz(utrecht, "FC UTRECHT").correct).toBe(true);
     expect(poem && gradeQuiz(poem, "een\ntwee\ndrie").correct).toBe(false);
     expect(poem && gradeQuiz(poem, "Nacht.\nRotterdam.\nNeon.\nDoor.").correct).toBe(true);
   });
