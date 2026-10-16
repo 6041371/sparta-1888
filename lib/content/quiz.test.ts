@@ -17,6 +17,12 @@ describe("vragen uit de bron", () => {
       expect(question.prompt).not.toMatch(/maak een foto|picture challenge|foto-uitdaging/i);
       if (question.kind === "choice") {
         expect(question.options.some((option) => option.id === question.answer)).toBe(true);
+        const labels = question.options.map((option) => option.label.trim().toLowerCase());
+        expect(new Set(labels).size).toBe(labels.length);
+        for (const option of question.options) {
+          const first = option.label.trim()[0];
+          if (/[a-zà-ÿ]/i.test(first)) expect(first).toBe(first.toUpperCase());
+        }
       }
     }
   });

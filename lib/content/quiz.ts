@@ -161,7 +161,7 @@ export const LOCATION_CLUES: Record<string, { title: string; text: string }> = {
 
 export const QUIZ_QUESTIONS: QuizQuestion[] = [
   choice("bk-1", "bestuurskamer", "Er staat hier in deze ruimte een standbeeld van een echte Sparta-legende. Welke oud-Sparta-speler wordt hier afgebeeld?", ["Danny Blind", "Kevin Strootman", "Bok de Korver", "John de Wolf"], "c"),
-  choice("bk-2", "bestuurskamer", "Wie was tijdelijk eigenaar van Sparta’s stadion “Het Kasteel”?", ["De gemeente Rotterdam", "Een groep supporters", "van de gemeente Rotterdam", "De KNVB"], "c"),
+  choice("bk-2", "bestuurskamer", "Wie was tijdelijk eigenaar van Sparta’s stadion “Het Kasteel”?", ["De gemeente Rotterdam", "Een groep supporters", "Een extern vastgoedfonds", "De KNVB"], "a"),
   choice("bk-3", "bestuurskamer", "Voor welke clubonderdelen heeft de houder van het “bijzondere aandeel” een vetorecht of verplichte goedkeuring?", ["Ticketprijzen", "Clubnaam, logo, clubkleuren en locatie van de jeugdopleiding", "Transfersommen", "Cateringprijzen"], "b"),
   choice("bk-6", "bestuurskamer", "Welke twee vernieuwingen kwamen in de zomer van 2022 samen op Het Kasteel?", ["Een nieuw logo en een nieuw supportershome", "Natuurgras en een verbouwde kleedkamer van de A-selectie", "Een extra tribune en een parkeergarage", "Nieuwe torens en een bredere gracht"], "b"),
   choice("bk-7", "bestuurskamer", "Wat was in 1916 bijzonder aan Bok de Korver?", ["Hij werd bondscoach van Oranje", "Er verscheen als eerste over een Nederlandse voetballer een biografie over hem", "Hij ontwierp het Sparta-logo", "Hij werd de eerste betaalde speler van Nederland"], "b"),
@@ -255,7 +255,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
   choice("jd-6", "deelderzaal", "Welke clubonderscheiding kreeg Jules Deelder op zijn 75e verjaardag van Sparta?", ["Erelid van de KNVB", "Lid van Verdienste van Sparta Rotterdam", "Trainer van het Jaar", "Voorzitter van de supportersvereniging"], "b"),
   choice("jd-7", "deelderzaal", "Welk bekend citaat van Jules Deelder gebruikt Rotterdam om gemeenschapszin te verwoorden?", ["Geen woorden maar daden", "De omgeving van de mens is de medemens", "Rotterdam durft", "Sterker door strijd"], "b"),
   choice("jd-8", "deelderzaal", "Welke bijzondere rol had Jules Deelder in 1985 voor Sparta?", ["Hij scoorde de openingstreffer in een jubileumwedstrijd", "Hij speelde de hoofdrol in een tv-spot voor een UEFA-Cupwedstrijd", "Hij ontwierp het clublogo voor een Europees seizoen", "Hij werd tijdelijk stadionomroeper"], "b"),
-  choice("jd-9", "deelderzaal", "Welke Rotterdamse eretitel hoorde het meest bij Jules Deelder?", ["Stadsdichter", "Nachtburgermeester", "Havenmeester", "Wijkwethouder"], "b"),
+  choice("jd-9", "deelderzaal", "Welke Rotterdamse eretitel hoorde het meest bij Jules Deelder?", ["Stadsdichter", "Nachtburgemeester", "Havenmeester", "Wijkwethouder"], "b"),
   open("jd-10", "deelderzaal", "In welk jaar werd Jules Deelder geboren?", "1944"),
   open("jd-11", "deelderzaal", "In welk jaar overleed Jules Deelder?", "2019"),
   open("jd-12", "deelderzaal", "Hoe heette het gedicht waarmee Deelder in 1962 in het Algemeen Handelsblad debuteerde?", "Straat"),

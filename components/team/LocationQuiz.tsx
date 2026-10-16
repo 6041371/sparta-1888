@@ -92,7 +92,7 @@ export function LocationQuiz({ locationId }: { locationId: string }) {
       {view === "ask" && question ? (
         <article className="paper stack">
           <p className="kicker">Vraag {cursor + 1} van {questions.length}</p>
-          <h1 className="serif" style={{ margin: 0 }}>{question.prompt}</h1>
+          <p className="question-prompt">{question.prompt}</p>
           {question.kind === "choice" ? (
             <div className="stack">
               {question.options.map((option) => (

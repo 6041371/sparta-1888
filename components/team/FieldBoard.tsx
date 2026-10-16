@@ -82,7 +82,7 @@ export function FieldBoard() {
       {player && question ? (
         <article className="paper stack">
           <p className="kicker">{player.name}</p>
-          <h2 className="serif" style={{ margin: 0 }}>{question.prompt}</h2>
+          <p className="question-prompt">{question.prompt}</p>
           {question.closed ? <Banner tone={question.solved ? "ok" : "warn"}>Deze vraag is al gecontroleerd.</Banner> : question.kind === "choice" ? (
             <div className="stack">
               {question.options.map((option) => (
