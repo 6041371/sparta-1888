@@ -154,6 +154,7 @@ export function ClueBook() {
         <article key={item.id} className="clue">
           <p className="kicker">Bewijsstuk {item.order}</p>
           <h2 className="serif">{item.title}</h2>
+          {item.image ? <img className="evidence-shot" src={item.image} alt={item.title} /> : null}
           <p className="serif">{item.text}</p>
         </article>
       ) : (
@@ -235,6 +236,7 @@ export function FinaleScreen() {
         {state.event.evidence.filter((item) => item.found).map((item) => (
           <div key={item.id}>
             <b>{item.title}</b>
+            {item.image ? <img className="evidence-shot" src={item.image} alt={item.title} /> : null}
             <p className="serif" style={{ margin: 0 }}>{item.text}</p>
           </div>
         ))}

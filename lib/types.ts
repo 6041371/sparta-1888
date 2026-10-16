@@ -272,6 +272,7 @@ export interface PublicEvidence {
   order: number;
   title: string;
   text: string;
+  image: string;
   found: boolean;
 }
 

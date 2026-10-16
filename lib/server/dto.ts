@@ -178,7 +178,12 @@ export function toTeamSnapshot(event: GameEvent, team: Team, now: number): TeamS
       rooms: event.rooms.map((room) => ({ id: room.id, name: room.name, available: room.available })),
       locations,
       questions,
-      evidence: EVIDENCE_ITEMS.map((item) => ({ ...item, found: found.has(item.id), text: found.has(item.id) ? item.text : "" })),
+      evidence: EVIDENCE_ITEMS.map((item) => ({
+        ...item,
+        found: found.has(item.id),
+        text: found.has(item.id) ? item.text : "",
+        image: found.has(item.id) ? item.image : "",
+      })),
       evidenceCollected: progress.collected,
       evidenceTotal: progress.total,
       fieldPlayers: FIELD_PLAYERS.map((player) => ({

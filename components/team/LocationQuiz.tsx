@@ -137,6 +137,7 @@ export function LocationQuiz({ locationId }: { locationId: string }) {
             <div key={item.id} className="clue">
               <p className="kicker">Bewijsstuk {item.order}</p>
               <h2 className="serif">{item.title}</h2>
+              {item.image ? <img className="evidence-shot" src={item.image} alt={item.title} /> : null}
               <p className="serif">{item.text}</p>
             </div>
           ))}

@@ -150,6 +150,7 @@ h3 { font-size: 1.25rem; margin-bottom: 6px; }
 .paper .btn { white-space: normal; height: auto; text-align: center; line-height: 1.3; padding-top: 12px; padding-bottom: 12px; }
 .pitch { position: relative; border-radius: 18px; overflow: hidden; }
 .pitch img { display: block; width: 100%; height: auto; }
+.clue img.evidence-shot, .paper img.evidence-shot { width: 100%; height: auto; border-radius: 12px; display: block; }
 .pitch-player {
   position: absolute;
   transform: translate(-50%, -50%);
