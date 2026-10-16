@@ -1,0 +1,12 @@
+---
+description: Branch- en publicatieregel voor SPARTA 1888
+alwaysApply: true
+---
+
+# Branches en publicatie
+
+- Kleine wijzigingen horen op de branch `test`.
+- Grote wijzigingen horen op een nieuwe branch, bijvoorbeeld `feat/naam`.
+- `main` is de live versie. Zet afgerond werk daarop.
+- Zet daarna de nieuwste versie op Vercel-productie en geef de gebruiker de link.
+- Commit en push alleen wanneer de gebruiker daarom vraagt, of wanneer deze publicatieregel dat voor een gevraagde oplevering vereist.
