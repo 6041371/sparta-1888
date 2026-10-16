@@ -1,4 +1,5 @@
 import { CULPRIT_ID, SUSPECTS } from "@/lib/copy";
+import { roomIdForEntryCode } from "@/lib/server/defaults";
 import type {
   Completion,
   EventStatus,
@@ -382,6 +383,23 @@ export function parseStationCode(value: string): string | null {
   const fromUrl = text.match(/station\/([A-Za-z0-9]{4,10})/i);
   if (fromUrl) return fromUrl[1].toUpperCase();
   if (/^[A-Za-z0-9]{4,10}$/.test(text)) return text.toUpperCase();
+  return null;
+}
+
+export function scanTarget(value: string): string | null {
+  const text = value.trim();
+  if (!text) return null;
+  const roomFromUrl = text.match(/\/ruimte\/([a-z0-9-]+)/i);
+  if (roomFromUrl) {
+    const id = roomIdForEntryCode(roomFromUrl[1]) ?? roomFromUrl[1].toLowerCase();
+    return `/ruimte/${id}`;
+  }
+  const stationFromUrl = text.match(/\/station\/([a-z0-9]{4,10})/i);
+  if (stationFromUrl) return `/spel/station/${stationFromUrl[1].toUpperCase()}`;
+  const roomId = roomIdForEntryCode(text);
+  if (roomId) return `/ruimte/${roomId}`;
+  const station = parseStationCode(text);
+  if (station && !roomIdForEntryCode(station)) return `/spel/station/${station}`;
   return null;
 }
 

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { MISSION, RULES, SUSPECTS } from "@/lib/copy";
-import { parseStationCode } from "@/lib/game/logic";
+import { scanTarget } from "@/lib/game/logic";
 import { useTeam } from "@/components/team/TeamShell";
 import { Banner, Button } from "@/components/ui";
 import { useRouter } from "next/navigation";
@@ -287,12 +287,26 @@ export function Scanner() {
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
   const scannerRef = useRef<{ stop: () => Promise<void> } | null>(null);
+  const openedRef = useRef(false);
 
   useEffect(() => {
     return () => {
       scannerRef.current?.stop().catch(() => undefined);
     };
   }, []);
+
+  function openCode(value: string) {
+    if (openedRef.current) return true;
+    const href = scanTarget(value);
+    if (!href) {
+      setCameraError("Die code herken ik niet. Gebruik de code op het bord, bijvoorbeeld MUSEUM.");
+      return false;
+    }
+    openedRef.current = true;
+    scannerRef.current?.stop().catch(() => undefined);
+    router.push(href);
+    return true;
+  }
 
   async function start() {
     setStarted(true);
@@ -301,26 +315,31 @@ export function Scanner() {
       const { Html5Qrcode } = await import("html5-qrcode");
       const scanner = new Html5Qrcode("qr-reader");
       scannerRef.current = scanner;
+      const cameras = await Html5Qrcode.getCameras().catch(() => []);
+      const back = cameras.find((camera) => /back|rear|environment|achter/i.test(camera.label)) ?? cameras[cameras.length - 1];
       await scanner.start(
-        { facingMode: "environment" },
-        { fps: 8, qrbox: { width: 220, height: 220 } },
+        back?.id ?? { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: (width, height) => {
+            const edge = Math.max(50, Math.floor(Math.min(width, height) * 0.72));
+            return { width: edge, height: edge };
+          },
+        },
         (text) => {
-          const found = parseStationCode(text);
-          if (!found) return;
-          scanner.stop().catch(() => undefined);
-          router.push(`/spel/station/${found}`);
+          openCode(text);
         },
         () => undefined,
       );
     } catch {
-      setCameraError("De camera is niet beschikbaar of de toestemming is geweigerd. Vul de stationcode hieronder in.");
+      setCameraError("De camera is niet beschikbaar of de toestemming is geweigerd. Vul de code van het bord hieronder in.");
     }
   }
 
   return (
     <div className="stack">
-      <h1 className="display">Scan het station</h1>
-      <p className="muted">Richt de camera op de QR-code bij het station, of typ de code van het bord.</p>
+      <h1 className="display">Scan de ruimte</h1>
+      <p className="muted">Richt de camera op de QR-code, of typ de code van het bord. Bijvoorbeeld MUSEUM of PERS.</p>
       <div id="qr-reader" style={{ borderRadius: 18, overflow: "hidden", background: "#111" }} />
       {!started ? <Button full onClick={() => void start()}>Open de camera</Button> : null}
       {cameraError ? <Banner>{cameraError}</Banner> : null}
@@ -328,19 +347,14 @@ export function Scanner() {
         className="stack"
         onSubmit={(event) => {
           event.preventDefault();
-          const found = parseStationCode(manual);
-          if (!found) {
-            setCameraError("Die code herken ik niet. Gebruik de code van het stationbord.");
-            return;
-          }
-          router.push(`/spel/station/${found}`);
+          openCode(manual);
         }}
       >
         <label className="field">
-          <span>Stationcode</span>
-          <input value={manual} onChange={(event) => setManual(event.target.value)} autoCapitalize="characters" />
+          <span>Ruimtecode</span>
+          <input value={manual} onChange={(event) => setManual(event.target.value.toUpperCase())} autoCapitalize="characters" autoCorrect="off" spellCheck={false} placeholder="MUSEUM" />
         </label>
-        <Button type="submit" full kind="dark">Open station</Button>
+        <Button type="submit" full kind="dark">Open de ruimte</Button>
       </form>
     </div>
   );
