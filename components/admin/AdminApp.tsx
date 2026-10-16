@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/client/api";
+import { ROOM_CODES } from "@/lib/server/defaults";
 import { formatRemaining, suggestedPhotoPoints } from "@/lib/game/logic";
 import type { OrganizerSnapshot, OrganizerStation, ScoringConfig } from "@/lib/types";
 import { Shield } from "@/components/Shield";
@@ -155,10 +156,14 @@ function Overview({
         <article className="stat"><b>{stuck.length}</b><span>teams zonder start</span></article>
       </section>
       <div className="paper dark stack">
-        <p className="small">Deelnemers-iPads openen alleen deze link. Zij vullen daar hun teamnaam in. Evenement-id: {event.id}.</p>
-        <p className="small">Lobby: <b>{lobbyUrl}</b></p>
+        <p className="kicker">Ruimtecode voor de iPads</p>
+        <p className="pad-code">{event.padCode}</p>
+        <p className="small">Deze code typen de deelnemers op het allereerste scherm. Zij hoeven geen link in te voeren.</p>
+        <p className="small">Open vandaag: {event.rooms.filter((room) => room.available).map((room) => room.name).join(", ") || "geen"}.</p>
+        <p className="small">Gesloten: {event.rooms.filter((room) => !room.available).map((room) => room.name).join(", ") || "geen"}.</p>
         <div className="row">
-          <Button kind="paper" onClick={() => void navigator.clipboard.writeText(lobbyUrl)}>Kopieer de lobby-link</Button>
+          <Button kind="paper" onClick={() => void navigator.clipboard.writeText(event.padCode)}>Kopieer de ruimtecode</Button>
+          <Button kind="ghost" onClick={() => void navigator.clipboard.writeText(lobbyUrl)}>Kopieer de link</Button>
         </div>
         <p className="small">{event.teams.length} {event.teams.length === 1 ? "team is" : "teams zijn"} aangemeld.</p>
         <div className="row">
@@ -497,6 +502,7 @@ function QrSheet({ event }: { event: OrganizerSnapshot["event"] }) {
           <article key={room.id} className="paper qr-card stack">
             <img src={`/api/qr/ruimte/${room.id}`} alt={`QR-code voor ${room.name}`} />
             <h3 className="display" style={{ margin: 0, textAlign: "center" }}>{room.name}</h3>
+            <p className="pad-code" style={{ fontSize: "1.4rem" }}>{ROOM_CODES[room.id] ?? room.id.toUpperCase()}</p>
             <p className="small" style={{ textAlign: "center" }}>{room.available ? "Vandaag open" : "Vandaag gesloten"}</p>
           </article>
         ))}

@@ -159,5 +159,15 @@ describe("opslag van een spelevenement", () => {
     );
     expect(solved.correct).toBe(true);
     expect(second.event.status).toBe("lobby");
+
+    const opened = await store.resolveEntry(first.event.padCode, null, now + 14);
+    expect(opened.href).toBe(`/onderzoek/${first.event.lobbyToken}`);
+    const other = await store.resolveEntry(second.event.padCode, null, now + 15);
+    expect(other.href).toBe(`/onderzoek/${second.event.lobbyToken}`);
+    expect(other.href).not.toBe(opened.href);
+    await expect(store.resolveEntry("MUSEUM", null, now + 16)).rejects.toThrow(/instructeur/i);
+    const museum = await store.resolveEntry("MUSEUM", joined.token, now + 17);
+    expect(museum.href).toBe("/ruimte/museum");
+    await expect(store.resolveEntry("KLEED", joined.token, now + 18)).rejects.toThrow(/niet beschikbaar/i);
   });
 });

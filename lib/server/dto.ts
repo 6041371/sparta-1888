@@ -160,6 +160,7 @@ export function toOrganizerSnapshot(event: GameEvent, now: number, includePhotos
       resultsPublished: event.resultsPublished,
       tiebreaker: event.tiebreaker,
       lobbyToken: event.lobbyToken,
+      padCode: event.padCode,
       scoring: event.scoring,
       rooms: event.rooms,
       stations,

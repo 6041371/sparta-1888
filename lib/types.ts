@@ -120,6 +120,7 @@ export interface GameEvent {
   accessHash: string;
   accessSalt: string;
   lobbyToken: string;
+  padCode: string;
   createdAt: number;
 }
 
@@ -288,6 +289,7 @@ export interface OrganizerEvent {
   resultsPublished: boolean;
   tiebreaker: TieBreaker;
   lobbyToken: string;
+  padCode: string;
   scoring: ScoringConfig;
   rooms: Room[];
   stations: OrganizerStation[];

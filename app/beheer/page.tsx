@@ -114,7 +114,7 @@ export default function OrganizerGate() {
               </label>
             ))}
           </fieldset>
-          <p className="small">Teams melden zich zelf aan op de iPads via de lobbylink. Zij voeren geen evenementcode in.</p>
+          <p className="small">Teams typen daarna de ruimtecode op het beginscherm. De gekozen ruimtes blijven bij dit evenement horen.</p>
           <Button type="submit" disabled={busy}>Maak het evenement</Button>
           <Button
             type="button"

@@ -16,6 +16,7 @@ export async function POST(request: Request) {
         durationMinutes: Number(body.durationMinutes ?? 90),
         teamCount: Number(body.teamCount ?? 4),
         teamNames: Array.isArray(body.teamNames) ? body.teamNames.map(String) : [],
+        roomIds: Array.isArray(body.roomIds) ? body.roomIds.map(String) : undefined,
       });
       await setToken("organizer", created.token);
       return json({ eventId: created.event.id, name: created.event.name });
@@ -25,6 +26,11 @@ export async function POST(request: Request) {
       const logged = await store.loginOrganizer(String(body.eventId ?? ""), String(body.accessCode ?? ""));
       await setToken("organizer", logged.token);
       return json({ eventId: logged.event.id, name: logged.event.name });
+    }
+
+    if (body.kind === "entry") {
+      const found = await store.resolveEntry(String(body.code ?? ""), await readToken("team"));
+      return json(found);
     }
 
     if (body.kind === "register") {

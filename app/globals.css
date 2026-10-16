@@ -160,7 +160,21 @@ input, textarea, select {
   padding: 12px 14px;
   font-size: 16px;
 }
-textarea { min-height: 110px; resize: vertical; }
+input[type="checkbox"] {
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
+  flex: 0 0 auto;
+  accent-color: var(--red);
+}
+.pad-code {
+  margin: 0;
+  font-size: 2.4rem;
+  letter-spacing: 0.16em;
+  font-weight: 800;
+  text-align: center;
+}
 .paper.dark input, .paper.dark textarea, .paper.dark select {
   background: #17181b;
   color: white;

@@ -33,7 +33,7 @@ import type {
   Team,
   TieBreaker,
 } from "@/lib/types";
-import { DEFAULT_FINALE, DEFAULT_SCORING, ROOM_TEMPLATES, STATION_TEMPLATES } from "@/lib/server/defaults";
+import { DEFAULT_FINALE, DEFAULT_SCORING, ROOM_CODES, ROOM_TEMPLATES, STATION_TEMPLATES, roomIdForEntryCode } from "@/lib/server/defaults";
 import { codeFeedback, getPuzzle, PUZZLES } from "@/lib/server/puzzles";
 
 interface Database {
@@ -72,6 +72,7 @@ function reviveEvent(event: GameEvent) {
             ? "paused"
             : "lobby";
   if (!event.lobbyToken) event.lobbyToken = `lobby_${event.id.replace(/^evt_/, "")}${event.accessSalt.slice(0, 8)}`;
+  if (!event.padCode) event.padCode = eventPadCode(event);
   for (const team of event.teams) {
     team.briefingSeen = Boolean(team.briefingSeen);
     team.finaleExplanation = team.finaleExplanation ?? "";
@@ -88,6 +89,29 @@ function makeCode(length: number): string {
   let out = "";
   for (let i = 0; i < length; i += 1) out += ALPHABET[bytes[i] % ALPHABET.length];
   return out;
+}
+
+const RESERVED_CODES = new Set(Object.values(ROOM_CODES));
+
+function eventPadCode(event: Pick<GameEvent, "padCode" | "id" | "accessSalt">): string {
+  const existing = String(event.padCode ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (existing.length >= 4 && !RESERVED_CODES.has(existing)) return existing;
+  let code = "";
+  for (const char of `${event.id}${event.accessSalt}`.toUpperCase()) {
+    if (ALPHABET.includes(char)) code += char;
+    if (code.length === 6) break;
+  }
+  while (code.length < 6) code += "2";
+  if (RESERVED_CODES.has(code)) code = `${code.slice(0, 5)}3`;
+  return code;
+}
+
+function freshPad(used: Set<string>): string {
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    const code = makeCode(6);
+    if (!used.has(code) && !RESERVED_CODES.has(code)) return code;
+  }
+  throw new GameError("Er kon geen ruimtecode worden gemaakt.");
 }
 
 function hashAccess(code: string, salt = randomBytes(16).toString("hex")) {
@@ -286,8 +310,10 @@ export function createStore(filePath?: string) {
         const requested = input.teamCount == null ? names.length : Number(input.teamCount);
         const teamCount = requested === 0 ? 0 : asInt(requested, 1, 24, "Het aantal teams");
         const usedJoins = new Set<string>();
+        const usedPads = new Set<string>();
         for (const event of Object.values(db.events)) {
           for (const team of event.teams) usedJoins.add(team.joinCode);
+          usedPads.add(eventPadCode(event));
         }
         const usedStations = new Set<string>();
         const access = hashAccess(input.accessCode.trim());
@@ -324,6 +350,7 @@ export function createStore(filePath?: string) {
           accessHash: access.hash,
           accessSalt: access.salt,
           lobbyToken: `lobby_${makeCode(12).toLowerCase()}`,
+          padCode: freshPad(usedPads),
           createdAt: now,
         };
         db.events[event.id] = event;
@@ -400,6 +427,32 @@ export function createStore(filePath?: string) {
           teamName: linked?.name ?? null,
           briefingSeen: linked?.briefingSeen ?? false,
         };
+      });
+    },
+
+    async resolveEntry(code: string, teamToken: string | null, now = Date.now()) {
+      return lock(async () => {
+        const { db } = await read();
+        const raw = code.trim();
+        const fromUrl = raw.match(/onderzoek\/([^/?#\s]+)/i)?.[1] ?? "";
+        const normalized = (fromUrl || raw).toUpperCase().replace(/[^A-Z0-9]/g, "");
+        if (normalized.length < 3) throw new GameError("Vul de ruimtecode in.");
+        const event = Object.values(db.events).find((item) => {
+          const pad = eventPadCode(item);
+          const lobby = item.lobbyToken.toUpperCase().replace(/[^A-Z0-9]/g, "");
+          return pad === normalized || lobby === normalized;
+        });
+        if (event) return { href: `/onderzoek/${event.lobbyToken}` };
+        const roomId = roomIdForEntryCode(normalized);
+        if (!roomId) throw new GameError("Deze ruimtecode klopt niet. Vraag de instructeur om de code op het dashboard.", 404);
+        const session = teamToken ? db.sessions[teamToken] : undefined;
+        const linked = session && session.expiresAt > now ? db.events[session.eventId] : undefined;
+        if (!linked) {
+          throw new GameError("Dit is een bordje in Het Kasteel. Vul eerst de ruimtecode van de instructeur in.", 401);
+        }
+        const room = linked.rooms.find((item) => item.id === roomId);
+        if (!room?.available) throw new GameError("Deze ruimte is vandaag niet beschikbaar.", 403);
+        return { href: `/ruimte/${roomId}` };
       });
     },
 

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Shield } from "@/components/Shield";
+import { EntryForm } from "@/components/home/EntryForm";
 
 export default function HomePage() {
   return (
@@ -25,7 +26,7 @@ export default function HomePage() {
         </div>
         <p className="serif" style={{ fontSize: "1.15rem", lineHeight: 1.5 }}>
           Een oud dossier uit 1888 lijkt verdwenen. Jullie team zoekt in Het Kasteel naar aanwijzingen en wijst aan het
-          einde een verzonnen verdachte aan. Deelnemers openen de link van de instructeur en vullen alleen hun teamnaam in.
+          einde een verzonnen verdachte aan. Vul de ruimtecode van de instructeur in. Daarna alleen jullie teamnaam.
         </p>
         <div className="stats">
           <div className="stat">
@@ -39,10 +40,10 @@ export default function HomePage() {
         </div>
       </article>
       <div className="stack" style={{ marginTop: 18 }}>
-        <Link className="btn primary full" href="/beheer">
+        <EntryForm />
+        <Link className="btn ghost full" href="/beheer">
           Instructeur
         </Link>
-        <p className="small">Deelnemers gebruiken de lobbylink op hun iPad. Die link kiest het evenement, niet een code op het scherm.</p>
       </div>
     </main>
   );

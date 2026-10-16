@@ -1,7 +1,22 @@
 import { FINALE_HINT, FINALE_PROMPT, SECRET_DEFAULT } from "@/lib/copy";
 import type { Room, ScoringConfig, Station } from "@/lib/types";
 
-export const DEFAULT_ANSWER = "NOOR";
+export const ROOM_CODES: Record<string, string> = {
+  bestuurskamer: "BESTUUR",
+  perskamer: "PERS",
+  tribune: "TRIBUNE",
+  museum: "MUSEUM",
+  deelderzaal: "DEELDER",
+  kleedkamer: "KLEED",
+};
+
+export function roomIdForEntryCode(code: string): string | null {
+  const normalized = code.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  for (const [id, entry] of Object.entries(ROOM_CODES)) {
+    if (entry === normalized || id.replace(/[^a-z0-9]/gi, "").toUpperCase() === normalized) return id;
+  }
+  return null;
+}
 
 export const DEFAULT_SCORING: ScoringConfig = {
   reactionMax: 100,
@@ -107,6 +122,8 @@ export const STATION_TEMPLATES: StationTemplate[] = [
     photoPrompt: null,
   },
 ];
+
+export const DEFAULT_ANSWER = "NOOR";
 
 export const DEFAULT_FINALE = {
   answer: DEFAULT_ANSWER,
