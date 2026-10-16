@@ -1,5 +1,7 @@
+import { EVIDENCE_ITEMS, evidenceProgress, finaleUnlocked } from "@/lib/content/evidence";
+import { assignPlayers, FIELD_PLAYERS } from "@/lib/content/field";
 import { QUIZ_LOCATIONS, getQuestion, publicQuestion, questionsFor } from "@/lib/content/quiz";
-import { GAME_TITLES } from "@/lib/copy";
+import { GAME_SUMMARIES, GAME_TITLES } from "@/lib/copy";
 import { displayScore, locationLabel, projectClock, rankTeams, stationVisible, visibleStations } from "@/lib/game/logic";
 import type {
   GameEvent,
@@ -78,10 +80,18 @@ export function toTeamSnapshot(event: GameEvent, team: Team, now: number): TeamS
   const answers = current.answers ?? [];
   const visited = current.visitedRooms ?? [];
   const solvedIds = new Set(answers.filter((item) => item.points > 0).map((item) => item.questionId));
+  const closedIds = new Set(answers.map((item) => item.questionId));
+  const assignments = event.evidenceAssignments ?? {};
+  const roomIds = event.rooms.filter((room) => room.available).map((room) => room.id);
+  const playerRooms = assignPlayers(roomIds);
   const locations = QUIZ_LOCATIONS.map((location) => {
     const questions = questionsFor(location.id);
     const room = event.rooms.find((item) => item.id === location.id);
     const field = location.id === "veld";
+    const station = event.stations.find((item) => item.roomId === location.id && item.enabled && item.game !== "photo");
+    const minigameDone = !station || current.completions.some((item) => item.stationId === station.id);
+    const closedCount = questions.filter((question) => closedIds.has(question.id)).length;
+    const complete = !field && Boolean(room?.available) && questions.length > 0 && closedCount === questions.length && minigameDone;
     return {
       id: location.id,
       name: room?.name ?? location.name,
@@ -90,13 +100,30 @@ export function toTeamSnapshot(event: GameEvent, team: Team, now: number): TeamS
       visited: field || visited.includes(location.id),
       questionCount: questions.length,
       solvedCount: questions.filter((question) => solvedIds.has(question.id)).length,
+      closedCount,
+      complete,
+      minigameTitle: station ? GAME_TITLES[station.game] : null,
+      minigameSummary: station ? GAME_SUMMARIES[station.game] : null,
+      minigameDone,
+      minigameCode: station && (field || visited.includes(location.id)) ? station.code : null,
+      evidenceIds: assignments[location.id] ?? [],
     };
   });
+  const unlockedPlayers = new Set(
+    Object.entries(playerRooms)
+      .filter(([roomId]) => locations.find((item) => item.id === roomId)?.complete)
+      .flatMap(([, players]) => players),
+  );
   const questions = QUIZ_LOCATIONS.flatMap((location) => {
     const card = locations.find((item) => item.id === location.id);
     if (!card?.available || !card.visited) return [];
-    return questionsFor(location.id).map((question) => publicQuestion(question, solvedIds.has(question.id)));
+    return questionsFor(location.id)
+      .filter((question) => location.id !== "veld" || unlockedPlayers.has(question.id))
+      .map((question) => publicQuestion(question, solvedIds.has(question.id), closedIds.has(question.id)));
   });
+  const found = new Set(current.collectedEvidenceIds ?? []);
+  const progress = evidenceProgress(current.collectedEvidenceIds ?? []);
+  const clockOpen = finaleUnlocked(current.collectedEvidenceIds ?? [], clock.remainingMs, event.status);
 
   return {
     role: "team",
@@ -128,6 +155,7 @@ export function toTeamSnapshot(event: GameEvent, team: Team, now: number): TeamS
       hintsUsedKeys: current.hintsUsed.map((hint) => hint.key),
       hintsLeft: Math.max(0, event.scoring.maxHints - current.hintsUsed.length),
       briefingSeen: current.briefingSeen,
+      fieldSeen: Boolean(current.fieldSeen),
       hintCost: event.scoring.hintCost,
       secretVisible,
     },
@@ -139,7 +167,7 @@ export function toTeamSnapshot(event: GameEvent, team: Team, now: number): TeamS
       remainingMs: clock.remainingMs,
       elapsedMs: clock.elapsedMs,
       serverNow: now,
-      finaleOpen: event.finaleOpen,
+      finaleOpen: event.finaleOpen || clockOpen,
       finalePrompt: event.finalePrompt,
       finaleHintAvailable: event.finaleHint.trim().length > 0,
       resultsPublished: event.resultsPublished,
@@ -150,6 +178,14 @@ export function toTeamSnapshot(event: GameEvent, team: Team, now: number): TeamS
       rooms: event.rooms.map((room) => ({ id: room.id, name: room.name, available: room.available })),
       locations,
       questions,
+      evidence: EVIDENCE_ITEMS.map((item) => ({ ...item, found: found.has(item.id), text: found.has(item.id) ? item.text : "" })),
+      evidenceCollected: progress.collected,
+      evidenceTotal: progress.total,
+      fieldPlayers: FIELD_PLAYERS.map((player) => ({
+        ...player,
+        unlocked: unlockedPlayers.has(player.questionId),
+        solved: solvedIds.has(player.questionId),
+      })),
     },
   };
 }

@@ -1,8 +1,8 @@
 export const GAME_TITLES = {
-  reaction: "Reaction Arena",
-  memory: "Memory Vault",
-  code: "Crack the Code",
-  photo: "Photo Mission",
+  reaction: "Schildtest",
+  memory: "Geheugenspel",
+  code: "Codepuzzel",
+  photo: "Foto-opdracht",
 } as const;
 
 export const GAME_SUMMARIES = {
@@ -22,49 +22,54 @@ export const PHOTO_PROMPTS = [
 
 export const MISSION = {
   kicker: "Vertrouwelijk dossier",
-  title: "De Verdwenen Erfenis",
-  lead: "Dit dossier is een spelverhaal. De diefstal, het archiefstuk en de verdachten zijn verzonnen.",
+  title: "Het Geheim van 1888",
+  lead: "Een interactieve reis door de geschiedenis van Sparta Rotterdam. De diefstal en de verdachten zijn verzonnen.",
   body: [
-    "Het is een bijzondere dag bij Sparta Rotterdam. Tijdens het doorspitten van het historische archief wordt een ontdekking gedaan: een oud dossier uit 1888, het jaar waarin Sparta werd opgericht.",
-    "Maar er is iets mis. Een belangrijk archiefstuk is verdwenen. Op de plek waar het hoorde te liggen, vinden medewerkers alleen een leeg vak en een mysterieuze boodschap: ‘Wie de geschiedenis kent, zal de waarheid vinden.’",
-    "Op verschillende plekken in Het Kasteel zijn vreemde aanwijzingen gevonden. Oude documenten lijken te zijn verplaatst, foto's liggen op de verkeerde plek en sommige verklaringen spreken elkaar tegen.",
-    "Jullie zijn aangesteld als speciaal onderzoeksteam. In verschillende ruimtes van Het Kasteel moeten jullie opdrachten uitvoeren, bewijs verzamelen en verklaringen onderzoeken.",
-    "Wat is er precies verdwenen? Wie zit erachter? En wat was het motief? Niet iedere aanwijzing vertelt het hele verhaal. Verzamel het bewijs, vergelijk de verklaringen en ontdek wat er werkelijk is gebeurd.",
-    "Jullie hebben beperkte tijd om de zaak op te lossen. Aan het einde moeten jullie een verdachte aanwijzen en uitleggen waarom jullie denken dat diegene verantwoordelijk is.",
-    "Het dossier ligt klaar. Het onderzoek begint nu. Sparta rekent op jullie.",
+    "Het standbeeld van Bok de Korver is verdwenen. In Het Kasteel ligt alleen de lege plek, en niemand heeft een verklaring die klopt.",
+    "Jullie onderzoeken de kamers die vandaag open zijn. Elke kamer heeft vragen en, waar die er is, een kort spel. Daarmee verdienen jullie bewijsstukken voor de zaakmap.",
+    "Er zijn altijd zeven bewijsstukken. Staan er minder kamers open, dan levert een kamer er meer dan één op. Jullie zien in de kamer hoeveel er te vinden zijn.",
+    "Op het veld verschijnen Sparta-spelers zodra een kamer is afgerond. Tik een speler aan voor zijn vraag.",
+    "Pas als alle zeven bewijsstukken binnen zijn, of in de laatste twintig minuten, kunnen jullie een verdachte aanwijzen.",
+    "De vragen gaan over de club. De verdwijning, de bewijsstukken en de vijf verdachten zijn fictie voor dit spel.",
   ],
   facts:
-    "De verdwijning, het archiefstuk en de verdachten zijn fictie voor het teamspel. De vragen in de ruimtes komen uit de spelbron. Dit zijn geen beschuldigingen aan echte personen.",
+    "De verdwijning van het standbeeld en de verdachten zijn fictie. Dit zijn geen beschuldigingen aan echte personen. De kennisvragen komen uit de spelbron.",
 };
 
 export const SUSPECTS = [
   {
-    id: "mira",
-    name: "Mira Vos",
-    role: "Spelpersonage · pers",
-    statement: "Ik keek om negen uur in het archiefvak. Het was leeg. Ik heb niets meegenomen.",
+    id: "hendrik",
+    name: "Hendrik van Dalen",
+    role: "Verzamelaar",
+    statement: "Hij verzamelt historische voetbalmemorabilia en wilde het standbeeld graag voor zijn privécollectie.",
   },
   {
-    id: "daan",
-    name: "Daan de Wit",
-    role: "Spelpersonage · bestuur",
-    statement: "Om half negen was de map al weg. Volgens mij heeft een onbekende supporter hem meegenomen.",
+    id: "marco",
+    name: "Marco de Wit",
+    role: "Fanatieke Sparta-supporter",
+    statement: "Een fanatieke supporter. Mogelijk wilde hij met de verdwijning een statement maken tegen de club.",
   },
   {
-    id: "noor",
-    name: "Noor Klein",
-    role: "Spelpersonage · museum",
-    statement: "Ik haalde om 08:40 een map met een rood lint op voor een rondleiding. Ik dacht dat het een kopie was.",
+    id: "thomas",
+    name: "Thomas Vermeer",
+    role: "Voormalig stadionmedewerker",
+    statement: "Hij werkte in het stadion, kende de beveiliging en wist hoe hij bij bepaalde ruimtes kon komen.",
   },
   {
-    id: "finn",
-    name: "Finn Bakker",
-    role: "Spelpersonage · facilitair",
-    statement: "Ik heb alleen fotolijsten recht gezet. Aan mappen kom ik niet.",
+    id: "eva",
+    name: "Eva van Rijn",
+    role: "Sparta-historicus",
+    statement: "Een historicus met interesse in het erfgoed. Mogelijk wilde zij aandacht voor de bescherming van historische objecten.",
+  },
+  {
+    id: "bosman",
+    name: "Richard Bosman",
+    role: "Handelaar in voetbalmemorabilia",
+    statement: "Hij handelt in historische voetbalobjecten en zou het standbeeld met winst kunnen doorverkopen.",
   },
 ] as const;
 
-export const CULPRIT_ID = "noor";
+export const CULPRIT_ID = "bosman";
 
 export const RULES = [
   "Blijf bij je team en volg de aanwijzingen van de instructeur en de huisregels van het stadion.",
@@ -72,15 +77,15 @@ export const RULES = [
   "Een opdracht levert één keer punten op. Opnieuw scannen opent het resultaat, geen tweede score.",
   "Hints kosten punten. Het bedrag en het aantal hints stelt de instructeur in.",
   "De klok loopt vanaf de officiële start en is voor elk team dezelfde. Verversen zet de tijd niet terug.",
-  "Aan het einde wijzen jullie één spelpersonage aan en leggen jullie uit waarom.",
+  "De finale opent als alle zeven bewijsstukken in de zaakmap zitten, of in de laatste twintig minuten.",
   "Overleg binnen je team mag. Andere teams hinderen hoort er niet bij.",
 ];
 
 export const SECRET_DEFAULT =
-  "Dit geheim hoort bij het spel. Er is geen echt document verdwenen en geen echte persoon beschuldigd.\n\nNoor Klein, de fictieve museumgids, nam om 08:40 een map met een rood lint mee voor een rondleiding. Ze dacht dat het een kopie was en liet die in de kleedkamer achter. Het origineel is nooit gestolen. De andere verklaringen kloppen niet met dat tijdstip.\n\nDe erfenis van Sparta zit niet in die map. Die zit in hoe jullie samen keken, overlegden en doorzetten.";
+  "Dit slot hoort bij het spel. Er is geen echt standbeeld gestolen en geen echte persoon beschuldigd.\n\nRichard Bosman nam het standbeeld van Bok de Korver mee om het met winst door te verkopen. Hij vervoerde het in een grote sporttas en gebruikte een donkere bestelbus. Het beeld lag tijdelijk op een verborgen opslagplek tot de overdracht.\n\nDe polaroid toont de tas. De camera toont de bus. De betaling draagt de initialen R.B. De chat spreekt over een overdracht. De tweede polaroid koppelt de bus aan de opslag. Het transportdocument noemt een bronzen sportobject en een naam op …sman. De advertentie van RB Collectibles wijst naar dezelfde plek.\n\nSamen leiden die aanwijzingen naar Richard Bosman. Het standbeeld van Bok de Korver komt terug.";
 
 export const FINALE_PROMPT =
-  "Wijs het spelpersonage aan dat de map heeft verplaatst en leg uit waarom de andere verklaringen niet kloppen. Dit zijn verzonnen personages, geen echte mensen.";
+  "Wijs aan wie het standbeeld van Bok de Korver heeft meegenomen. Gebruik de zeven bewijsstukken in de zaakmap. De verdachten zijn verzonnen.";
 
 export const FINALE_HINT =
-  "Vergelijk de tijden. Wie was als enige in het museum vóór negen uur, met een map zonder archiefstempel?";
+  "Kijk naar de initialen bij het geld en naar de achternaam op het transportdocument. De zaakmap noemt ze allebei.";

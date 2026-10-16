@@ -22,28 +22,39 @@ export function Dashboard() {
         <article className="stat"><b>{team.score}</b><span>punten</span></article>
         <article className="stat"><b>{team.rank}</b><span>van {team.teamCount}</span></article>
         <article className="stat"><b>{event.locations.filter((item) => item.available).reduce((sum, item) => sum + item.solvedCount, 0)}/{event.locations.filter((item) => item.available).reduce((sum, item) => sum + item.questionCount, 0)}</b><span>vragen</span></article>
-        <article className="stat"><b>{team.clues.length}</b><span>aanwijzingen</span></article>
+        <article className="stat"><b>{event.evidenceCollected}/{event.evidenceTotal}</b><span>bewijzen</span></article>
       </section>
       <article className="paper dark stack">
         <p className="small">Hints over: {team.hintsLeft}. Een hint kost {team.hintCost} punten.</p>
         <Link className="btn primary full" href={event.finaleOpen ? "/spel/finale" : "/spel/kaart"}>
           {event.finaleOpen ? "Naar de finale" : "Speel verder"}
         </Link>
+        {!event.finaleOpen ? <p className="small">De finale opent bij 7 van de 7 bewijsstukken, of in de laatste 20 minuten.</p> : null}
       </article>
       <div className="stack">
         {event.locations.filter((location) => location.available).map((location) => {
-          const done = location.questionCount > 0 && location.solvedCount === location.questionCount;
+          const done = location.id === "veld" ? location.questionCount > 0 && location.solvedCount === location.questionCount : location.complete;
           const href = location.id === "veld" ? "/spel/veld" : location.visited ? `/spel/locatie/${location.id}` : "/spel/scan";
+          const found = event.evidence.filter((item) => item.found && location.evidenceIds.includes(item.id)).length;
           return (
             <Link key={location.id} href={href} className="paper spread">
               <div>
                 <b>{location.name}</b>
-                <p className="small" style={{ margin: 0 }}>{location.visited ? `${location.solvedCount} van ${location.questionCount} vragen` : "Nog niet gescand"}</p>
+                <p className="small" style={{ margin: 0 }}>
+                  {location.id === "veld"
+                    ? `${location.solvedCount} van ${location.questionCount} vragen`
+                    : location.visited
+                      ? `${location.closedCount} van ${location.questionCount} vragen · ${found} van ${location.evidenceIds.length} bewijs`
+                      : "Nog niet gescand"}
+                </p>
               </div>
-              <span className="stamp">{done ? "Klaar" : location.visited ? "Open" : "Scan"}</span>
+              <span className="stamp">{done ? "Klaar" : location.visited || location.id === "veld" ? "Open" : "Scan"}</span>
             </Link>
           );
         })}
+        {event.locations.filter((location) => location.available && location.id !== "veld").length === 0 ? (
+          <Banner tone="warn">Er is vandaag geen kamer open. Vraag de instructeur om minstens één ruimte te openen.</Banner>
+        ) : null}
       </div>
       {team.ledger.length ? (
         <article className="paper stack">
@@ -103,17 +114,25 @@ export function StationMap() {
       <div>
         <p className="kicker">Het Kasteel</p>
         <h1 className="display">Kies je route</h1>
-        <p className="muted">De zeven ruimtes open je met de QR-code ter plekke. Het Veld is een aparte opdracht en heeft geen QR-code.</p>
+        <p className="muted">Open een kamer met de QR-code ter plekke. Het Veld heeft geen QR-code. Minder open kamers betekent meer bewijsstukken per kamer.</p>
       </div>
+      {state.event.locations.filter((location) => location.available && location.id !== "veld").length === 0 ? (
+        <Banner tone="warn">Er is vandaag geen kamer open. Het spel kan pas starten als de instructeur minstens één ruimte openzet.</Banner>
+      ) : null}
       <div className="map">
         {state.event.locations.filter((location) => location.available).map((location) => {
-          const done = location.questionCount > 0 && location.solvedCount === location.questionCount;
+          const done = location.id === "veld" ? location.questionCount > 0 && location.solvedCount === location.questionCount : location.complete;
           const href = location.id === "veld" ? "/spel/veld" : location.visited ? `/spel/locatie/${location.id}` : "/spel/scan";
+          const found = state.event.evidence.filter((item) => item.found && location.evidenceIds.includes(item.id)).length;
           return (
             <Link key={location.id} href={href} className={`zone ${done ? "done" : ""}`}>
               <span>
                 <b>{location.name}</b>
-                <small>{location.solvedCount}/{location.questionCount} vragen</small>
+                <small>
+                  {location.id === "veld"
+                    ? `${location.solvedCount}/${location.questionCount} vragen`
+                    : `${found}/${location.evidenceIds.length} bewijs`}
+                </small>
               </span>
               <strong>{location.id === "veld" ? (done ? "Klaar" : "Open") : location.visited ? (done ? "Klaar" : "Verder") : "Scan"}</strong>
             </Link>
@@ -129,22 +148,29 @@ export function ClueBook() {
   if (!state) return null;
   return (
     <div className="stack">
-      <h1 className="display">Aanwijzingen</h1>
-      {state.event.locations.filter((location) => location.available && location.id !== "veld").map((location) => {
-        const clue = state.team.clues.find((item) => item.stationId === `quiz:${location.id}`);
-        return clue ? (
-          <article key={location.id} className="clue">
-            <p className="kicker">{location.name}</p>
-            <h2 className="serif">{clue.title}</h2>
-            <p className="serif">{clue.text}</p>
-          </article>
-        ) : (
-          <article key={location.id} className="clue sealed">
-            <span className="stamp">Verzegeld</span>
-            <p>{location.name} is nog niet geopend.</p>
-          </article>
-        );
-      })}
+      <h1 className="display">Zaakmap</h1>
+      <p>{state.event.evidenceCollected} van de {state.event.evidenceTotal} bewijsstukken.</p>
+      {state.event.evidence.map((item) => item.found ? (
+        <article key={item.id} className="clue">
+          <p className="kicker">Bewijsstuk {item.order}</p>
+          <h2 className="serif">{item.title}</h2>
+          <p className="serif">{item.text}</p>
+        </article>
+      ) : (
+        <article key={item.id} className="clue sealed">
+          <span className="stamp">Ontbreekt</span>
+          <p>Bewijsstuk {item.order} is nog niet gevonden.</p>
+        </article>
+      ))}
+      <h2 className="display">Verdachten</h2>
+      <p className="small">De personages zijn verzonnen. Vergelijk hun motief met de bewijsstukken. De zaakmap zegt niet wie het heeft gedaan.</p>
+      {SUSPECTS.map((suspect) => (
+        <article key={suspect.id} className="paper stack">
+          <b>{suspect.name}</b>
+          <span className="small">{suspect.role}</span>
+          <p className="serif" style={{ margin: 0 }}>{suspect.statement}</p>
+        </article>
+      ))}
       <Link className="btn primary" href="/spel/finale">Naar de finale</Link>
     </div>
   );
@@ -202,14 +228,14 @@ export function FinaleScreen() {
       <p className="kicker">Afronding</p>
       <h1 className="display">Wijs de verdachte aan</h1>
       <p className="small">De personages hieronder zijn verzonnen voor dit spel.</p>
-      {!state.event.finaleOpen ? <Banner>De afronding is nog dicht. De instructeur opent haar met de start, of later opnieuw.</Banner> : null}
+      {!state.event.finaleOpen ? <Banner>De finale is nog dicht. Die opent als alle zeven bewijsstukken binnen zijn, of in de laatste 20 minuten.</Banner> : null}
       <article className="paper stack">
         <p className="serif">{state.event.finalePrompt}</p>
-        {state.team.clues.length === 0 ? <p>Jullie hebben nog geen aanwijzingen verzameld.</p> : null}
-        {state.team.clues.map((clue) => (
-          <div key={clue.stationId}>
-            <b>{clue.title}</b>
-            <p className="serif" style={{ margin: 0 }}>{clue.text}</p>
+        {state.event.evidence.filter((item) => item.found).length === 0 ? <p>Jullie hebben nog geen bewijsstukken. Die komen in de zaakmap als een kamer is afgerond.</p> : null}
+        {state.event.evidence.filter((item) => item.found).map((item) => (
+          <div key={item.id}>
+            <b>{item.title}</b>
+            <p className="serif" style={{ margin: 0 }}>{item.text}</p>
           </div>
         ))}
       </article>

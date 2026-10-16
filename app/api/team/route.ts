@@ -6,6 +6,7 @@ import {
   enterRoom,
   enterStation,
   markBriefing,
+  markField,
   store,
   submitCode,
   submitFinale,
@@ -72,6 +73,10 @@ export async function POST(request: Request) {
     const outcome = await store.mutateTeam(token, (event, team, now) => {
       if (body.action === "briefing") {
         markBriefing(team);
+        return { ok: true };
+      }
+      if (body.action === "field-seen") {
+        markField(team);
         return { ok: true };
       }
       if (body.action === "enter-room") {

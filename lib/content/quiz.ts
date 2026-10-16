@@ -350,7 +350,7 @@ export function gradeQuiz(question: QuizQuestion, response: string): { correct: 
   return { correct, feedback: correct ? question.correctFeedback : "Dat is niet het antwoord uit de bron." };
 }
 
-export function publicQuestion(question: QuizQuestion, solved: boolean) {
+export function publicQuestion(question: QuizQuestion, solved: boolean, closed: boolean) {
   return {
     id: question.id,
     locationId: question.locationId,
@@ -360,5 +360,12 @@ export function publicQuestion(question: QuizQuestion, solved: boolean) {
     inputLabel: question.inputLabel,
     minLines: question.minLines,
     solved,
+    closed,
   };
+}
+
+export function officialAnswer(question: QuizQuestion): string {
+  if (question.kind === "choice") return question.options.find((option) => option.id === question.answer)?.label ?? "";
+  if (question.kind === "open") return question.answer;
+  return "";
 }

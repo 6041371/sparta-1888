@@ -114,19 +114,21 @@ export function GameScreen({ code }: { code: string }) {
           {entered.completion?.photoStatus === "pending" ? (
             <p>De organisatie beoordeelt de foto nog. De aanwijzing is al van jullie.</p>
           ) : null}
-          <div className="clue">
-            <p className="kicker">Aanwijzing</p>
-            <h3 className="serif">{entered.completion?.clueTitle}</h3>
-            <p className="serif">{entered.completion?.clueText}</p>
-          </div>
-          <p className="small">Opnieuw spelen levert geen extra punten op.</p>
+          {entered.completion?.clueTitle ? (
+            <div className="clue">
+              <p className="kicker">Aanwijzing</p>
+              <h3 className="serif">{entered.completion.clueTitle}</h3>
+              <p className="serif">{entered.completion.clueText}</p>
+            </div>
+          ) : null}
+          <p className="small">Opnieuw spelen levert geen extra punten op. Het bewijs staat in de zaakmap.</p>
           {entered.station.game !== "photo" && entered.station.game !== "code" ? (
             <Button kind="dark" onClick={() => setPractice(true)}>
               Oefen nog een keer
             </Button>
           ) : null}
-          <Link className="btn primary" href="/spel">
-            Naar het dashboard
+          <Link className="btn primary" href={entered.station.roomId ? `/spel/locatie/${entered.station.roomId}` : "/spel"}>
+            Terug naar de kamer
           </Link>
         </article>
       ) : null}

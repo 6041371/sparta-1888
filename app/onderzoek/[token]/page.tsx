@@ -90,7 +90,7 @@ export default function LobbyPage() {
         <Shield />
         <div>
           <p className="kicker">Sparta Rotterdam</p>
-          <strong>De Verdwenen Erfenis</strong>
+          <strong>Het Geheim van 1888</strong>
         </div>
       </div>
 

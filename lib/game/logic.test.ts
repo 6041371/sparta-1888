@@ -37,6 +37,8 @@ function team(partial: Partial<Team> = {}): Team {
     briefingSeen: false,
     answers: [],
     visitedRooms: [],
+    collectedEvidenceIds: [],
+    fieldSeen: false,
     createdAt: 0,
     ...partial,
   };

@@ -96,6 +96,8 @@ export interface Team {
   briefingSeen: boolean;
   answers: QuizAnswer[];
   visitedRooms: string[];
+  collectedEvidenceIds: string[];
+  fieldSeen: boolean;
   createdAt: number;
 }
 
@@ -131,6 +133,9 @@ export interface GameEvent {
   accessSalt: string;
   lobbyToken: string;
   padCode: string;
+  evidenceAssignments: Record<string, string[]>;
+  assignmentKey: string;
+  assignmentVersion: number;
   createdAt: number;
 }
 
@@ -205,6 +210,7 @@ export interface TeamView {
   hintCost: number;
   secretVisible: boolean;
   briefingSeen: boolean;
+  fieldSeen: boolean;
 }
 
 export interface PublicEvent {
@@ -226,6 +232,10 @@ export interface PublicEvent {
   rooms: { id: string; name: string; available: boolean }[];
   locations: PublicLocation[];
   questions: PublicQuizQuestion[];
+  evidence: PublicEvidence[];
+  evidenceCollected: number;
+  evidenceTotal: number;
+  fieldPlayers: PublicFieldPlayer[];
 }
 
 export interface PublicQuizQuestion {
@@ -237,6 +247,7 @@ export interface PublicQuizQuestion {
   inputLabel: string;
   minLines: number;
   solved: boolean;
+  closed: boolean;
 }
 
 export interface PublicLocation {
@@ -247,6 +258,31 @@ export interface PublicLocation {
   visited: boolean;
   questionCount: number;
   solvedCount: number;
+  closedCount: number;
+  complete: boolean;
+  minigameTitle: string | null;
+  minigameSummary: string | null;
+  minigameDone: boolean;
+  minigameCode: string | null;
+  evidenceIds: string[];
+}
+
+export interface PublicEvidence {
+  id: string;
+  order: number;
+  title: string;
+  text: string;
+  found: boolean;
+}
+
+export interface PublicFieldPlayer {
+  questionId: string;
+  name: string;
+  top: string;
+  left: string;
+  keeper: boolean;
+  unlocked: boolean;
+  solved: boolean;
 }
 
 export interface RankRow {

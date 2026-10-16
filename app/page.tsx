@@ -9,32 +9,33 @@ export default function HomePage() {
         <Shield />
         <div>
           <p className="kicker">Sparta Rotterdam</p>
-          <strong>De Verdwenen Erfenis</strong>
+          <strong>Het Geheim van 1888</strong>
         </div>
       </div>
       <p className="kicker">Vertrouwelijk dossier</p>
       <h1 className="display">
-        DE VERDWENEN
+        HET GEHEIM
         <br />
-        ERFENIS
+        VAN 1888
       </h1>
-      <p className="lead">Een onderzoek in Het Kasteel. De verdwijning is een spelverhaal.</p>
+      <p className="lead">Een interactieve reis door de geschiedenis van Sparta Rotterdam.</p>
       <article className="paper ticket stack" style={{ marginTop: 22 }}>
         <div className="spread">
           <span className="stamp">Verzegeld</span>
           <span className="stamp gold">Spelverhaal</span>
         </div>
         <p className="serif" style={{ fontSize: "1.15rem", lineHeight: 1.5 }}>
-          Een oud dossier uit 1888 lijkt verdwenen. Jullie team zoekt in Het Kasteel naar aanwijzingen en wijst aan het
-          einde een verzonnen verdachte aan. Vul de ruimtecode van de instructeur in. Daarna alleen jullie teamnaam.
+          Het standbeeld van Bok de Korver is verdwenen. Jullie verzamelen zeven bewijsstukken in de kamers die vandaag
+          open zijn en wijzen daarna een verzonnen verdachte aan. Vul de ruimtecode van de instructeur in. Daarna alleen
+          jullie teamnaam.
         </p>
         <div className="stats">
           <div className="stat">
-            <b>4</b>
-            <span>minigames</span>
+            <b>7</b>
+            <span>bewijzen</span>
           </div>
           <div className="stat">
-            <b>6</b>
+            <b>7</b>
             <span>ruimtes</span>
           </div>
         </div>

@@ -1,7 +1,7 @@
 "use client";
 
-import { LocationQuiz } from "@/components/team/LocationQuiz";
+import { FieldBoard } from "@/components/team/FieldBoard";
 
 export default function FieldPage() {
-  return <LocationQuiz locationId="veld" />;
+  return <FieldBoard />;
 }

@@ -33,7 +33,9 @@ import type {
   Team,
   TieBreaker,
 } from "@/lib/types";
-import { LOCATION_CLUES, getQuestion, gradeQuiz, questionsFor } from "@/lib/content/quiz";
+import { EVIDENCE_ITEMS, collectRoomEvidence, distributeEvidence, finaleUnlocked } from "@/lib/content/evidence";
+import { assignPlayers } from "@/lib/content/field";
+import { getQuestion, gradeQuiz, officialAnswer, questionsFor } from "@/lib/content/quiz";
 import { DEFAULT_FINALE, DEFAULT_SCORING, ROOM_CODES, ROOM_TEMPLATES, STATION_TEMPLATES, roomIdForEntryCode } from "@/lib/server/defaults";
 import { codeFeedback, getPuzzle, PUZZLES } from "@/lib/server/puzzles";
 
@@ -81,11 +83,11 @@ function reviveEvent(event: GameEvent) {
   }
   for (const station of event.stations) {
     if (station.game === "photo") station.enabled = false;
-    const roomId = station.roomId;
-    for (const team of event.teams) {
-      for (const clue of team.clues ?? []) {
-        if (clue.stationId === station.id) clue.stationId = `quiz:${roomId}`;
-      }
+    const template = STATION_TEMPLATES.find((item) => item.id === station.id);
+    if (template) {
+      station.name = template.name;
+      station.clueTitle = "";
+      station.clueText = "";
     }
   }
   for (const team of event.teams) {
@@ -94,6 +96,8 @@ function reviveEvent(event: GameEvent) {
     team.finaleSuspect = team.finaleSuspect ?? null;
     team.answers = Array.isArray(team.answers) ? team.answers : [];
     team.visitedRooms = Array.isArray(team.visitedRooms) ? team.visitedRooms : [];
+    team.collectedEvidenceIds = Array.isArray(team.collectedEvidenceIds) ? team.collectedEvidenceIds : [];
+    team.fieldSeen = Boolean(team.fieldSeen);
     team.photoPrompts = team.photoPrompts ?? {};
     const seen = new Set<string>();
     team.clues = (team.clues ?? []).filter((clue) => {
@@ -102,6 +106,8 @@ function reviveEvent(event: GameEvent) {
       return true;
     });
   }
+  ensureAssignments(event);
+  for (const team of event.teams) grantReadyEvidence(event, team);
 }
 
 function makeToken(bytes = 24): string {
@@ -177,6 +183,18 @@ function promptFor(team: Team, station: Station): string {
   return PHOTO_PROMPTS[index];
 }
 
+function availableRoomIds(event: GameEvent): string[] {
+  return event.rooms.filter((room) => room.available).map((room) => room.id).sort((a, b) => a.localeCompare(b));
+}
+
+function ensureAssignments(event: GameEvent) {
+  const key = availableRoomIds(event).join(",");
+  if (event.assignmentVersion === 1 && event.assignmentKey === key && event.evidenceAssignments) return;
+  event.evidenceAssignments = distributeEvidence(EVIDENCE_ITEMS, availableRoomIds(event));
+  event.assignmentKey = key;
+  event.assignmentVersion = 1;
+}
+
 function hashString(value: string): number {
   let hash = 0;
   for (let i = 0; i < value.length; i += 1) hash = (hash * 31 + value.charCodeAt(i)) | 0;
@@ -204,6 +222,8 @@ function blankTeam(name: string, joinCode: string, now: number): Team {
     briefingSeen: false,
     answers: [],
     visitedRooms: [],
+    collectedEvidenceIds: [],
+    fieldSeen: false,
     createdAt: now,
   };
 }
@@ -377,9 +397,13 @@ export function createStore(filePath?: string) {
           accessSalt: access.salt,
           lobbyToken: `lobby_${makeCode(12).toLowerCase()}`,
           padCode: freshPad(usedPads),
+          evidenceAssignments: {},
+          assignmentKey: "",
+          assignmentVersion: 1,
           createdAt: now,
         };
         db.events[event.id] = event;
+        ensureAssignments(event);
         const token = issue(db, "organizer", event.id, null, now);
         return { event, token };
       });
@@ -696,8 +720,8 @@ export function setStatus(event: GameEvent, action: string, confirm: unknown, no
     if (event.status === "active") return;
     if (event.status === "finished") throw new GameError("Zet het evenement eerst terug naar een nieuwe sessie.");
     if (event.teams.length < 1) throw new GameError("Er is nog geen team aangemeld.");
-    if (visibleStations(event.stations, event.rooms).length < 1) {
-      throw new GameError("Zet minstens één ruimte of alternatief station open.");
+    if (!event.rooms.some((room) => room.available)) {
+      throw new GameError("Zet minstens één ruimte open.");
     }
     event.status = "active";
     event.startedAt = now;
@@ -705,7 +729,8 @@ export function setStatus(event: GameEvent, action: string, confirm: unknown, no
     event.pausedTotalMs = 0;
     event.endedAt = null;
     event.resultsPublished = false;
-    event.finaleOpen = true;
+    event.finaleOpen = false;
+    ensureAssignments(event);
     return;
   }
   if (action === "pause") {
@@ -965,23 +990,77 @@ export function enterRoom(event: GameEvent, team: Team, roomId: string, now: num
   return enterStation(event, team, station.code, now);
 }
 
+function roomStation(event: GameEvent, roomId: string) {
+  return event.stations.find((station) => station.roomId === roomId && station.enabled && station.game !== "photo") ?? null;
+}
+
+function roomReady(event: GameEvent, team: Team, roomId: string) {
+  const questions = questionsFor(roomId);
+  if (questions.length === 0) return false;
+  const closed = questions.every((question) => team.answers.some((answer) => answer.questionId === question.id));
+  const station = roomStation(event, roomId);
+  const played = !station || team.completions.some((item) => item.stationId === station.id);
+  return closed && played;
+}
+
+function syncEvidence(event: GameEvent, team: Team) {
+  ensureAssignments(event);
+  grantReadyEvidence(event, team);
+}
+
+function grantReadyEvidence(event: GameEvent, team: Team) {
+  team.collectedEvidenceIds = team.collectedEvidenceIds ?? [];
+  for (const roomId of Object.keys(event.evidenceAssignments ?? {})) {
+    if (!roomReady(event, team, roomId)) continue;
+    const next = collectRoomEvidence(roomId, event.evidenceAssignments, team.collectedEvidenceIds);
+    team.collectedEvidenceIds = next.collectedEvidenceIds;
+  }
+}
+
+function playerUnlocked(event: GameEvent, team: Team, questionId: string) {
+  ensureAssignments(event);
+  const rooms = availableRoomIds(event);
+  const assigned = assignPlayers(rooms);
+  return Object.entries(assigned).some(([roomId, players]) => players.includes(questionId) && roomReady(event, team, roomId));
+}
+
+export function markField(team: Team) {
+  team.fieldSeen = true;
+}
+
 export function submitQuiz(event: GameEvent, team: Team, questionId: string, response: unknown, now: number) {
   const question = getQuestion(questionId);
   if (!question) throw new GameError("Deze vraag hoort niet bij het spel.", 404);
   if (typeof response !== "string") throw new GameError("Dit antwoord is ongeldig.");
   const text = response.replace(/[\u0000-\u001F]/g, "").trim();
   if (text.length > 2000) throw new GameError("Dit antwoord is te lang.");
-  if (question.locationId !== "veld") {
+  if (question.locationId === "veld") {
+    if (!playerUnlocked(event, team, question.id)) throw new GameError("Deze speler komt vrij als de bijbehorende kamer is afgerond.", 403);
+  } else {
     const room = event.rooms.find((item) => item.id === question.locationId);
     if (!room?.available) throw new GameError("Deze ruimte is vandaag niet beschikbaar.", 403);
     if (!team.visitedRooms.includes(question.locationId)) throw new GameError("Scan eerst de QR-code van deze ruimte.", 403);
   }
-  const already = team.answers.find((item) => item.questionId === question.id && item.points > 0);
-  if (already) return { correct: true, points: 0, already: true, feedback: "Deze vraag is al beloond." };
+  const existing = team.answers.find((item) => item.questionId === question.id);
+  if (existing) {
+    return {
+      correct: existing.points > 0,
+      points: 0,
+      already: true,
+      feedback: existing.points > 0 ? "Deze vraag is al beloond." : "Deze vraag is al gecontroleerd.",
+      solution: officialAnswer(question),
+    };
+  }
   const block = playBlockReason(event, now);
   if (block) throw new GameError(block, 403);
   const graded = gradeQuiz(question, text);
-  if (!graded.correct) return { correct: false, points: 0, already: false, feedback: graded.feedback };
+  const solution = officialAnswer(question);
+  if (!graded.correct) {
+    if (question.kind === "creative") return { correct: false, points: 0, already: false, feedback: graded.feedback, solution: "" };
+    team.answers.push({ questionId: question.id, correct: false, points: 0, at: now, response: text.slice(0, 2000) });
+    syncEvidence(event, team);
+    return { correct: false, points: 0, already: false, feedback: `Dat klopt niet. Het goede antwoord is: ${solution}.`, solution };
+  }
   const points = event.scoring.codePoints;
   team.answers.push({
     questionId: question.id,
@@ -990,15 +1069,12 @@ export function submitQuiz(event: GameEvent, team: Team, questionId: string, res
     at: now,
     response: text.slice(0, 2000),
   });
-  const clue = LOCATION_CLUES[question.locationId];
-  const key = `quiz:${question.locationId}`;
-  if (clue && question.kind !== "creative" && !team.clues.some((item) => item.stationId === key)) {
-    team.clues.push({ stationId: key, title: clue.title, text: clue.text, earnedAt: now });
-  }
+  syncEvidence(event, team);
   const next = withScore(team, now);
   team.score = next.score;
   team.lastScoreAt = next.lastScoreAt;
-  return { correct: true, points, already: false, feedback: graded.feedback };
+  const feedback = question.kind === "creative" ? graded.feedback : `Goed. ${solution}`;
+  return { correct: true, points, already: false, feedback, solution };
 }
 
 export function submitFinale(
@@ -1009,9 +1085,12 @@ export function submitFinale(
   accusation?: { suspectId?: unknown; explanation?: unknown },
 ) {
   if (accusation && typeof accusation.suspectId === "string") {
+    const clock = projectClock(event, now);
+    const open = event.finaleOpen || finaleUnlocked(team.collectedEvidenceIds ?? [], clock.remainingMs, event.status);
+    if (!open) throw new GameError("De finale opent als alle zeven bewijsstukken binnen zijn, of in de laatste 20 minuten.", 403);
     const result = applyAccusation(
       team,
-      event,
+      { ...event, finaleOpen: true },
       accusation.suspectId,
       typeof accusation.explanation === "string" ? accusation.explanation : "",
       event.scoring,
@@ -1119,6 +1198,7 @@ function award(
     photo,
   };
   const result = applyCompletion(team, completion, now);
+  syncEvidence(event, result.team);
   event.teams = event.teams.map((item) => (item.id === team.id ? result.team : item));
   const stored = result.team.completions.find((item) => item.stationId === station.id);
   return {

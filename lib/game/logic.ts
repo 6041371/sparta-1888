@@ -307,7 +307,7 @@ export function applyAccusation(
       }),
       correct: false,
       already: false,
-      feedback: "Deze verklaring past niet bij het bewijs. Vergelijk de tijden nog eens.",
+      feedback: "De conclusie klopt nog niet. Bekijk de zaakmap nog eens. De oplossing blijft dicht.",
     };
   }
   const next = withScore(

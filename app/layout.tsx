@@ -11,10 +11,10 @@ const display = Barlow_Condensed({
 const serif = Literata({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-serif" });
 
 export const metadata: Metadata = {
-  title: "Sparta Rotterdam — De Verdwenen Erfenis",
-  description: "Interactief onderzoeksspel in Het Kasteel voor teams. De verdwijning en de verdachten zijn fictie.",
+  title: "Sparta Rotterdam — Het Geheim van 1888",
+  description: "Een interactieve reis door de geschiedenis van Sparta Rotterdam. De verdwijning en de verdachten zijn fictie.",
   robots: { index: false, follow: false },
-  applicationName: "De Verdwenen Erfenis",
+  applicationName: "Het Geheim van 1888",
 };
 
 export const viewport: Viewport = {

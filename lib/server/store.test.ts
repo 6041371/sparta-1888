@@ -2,6 +2,8 @@ import { mkdtempSync } from "fs";
 import { tmpdir } from "os";
 import path from "path";
 import { describe, expect, it } from "vitest";
+import { EVIDENCE_ITEMS } from "@/lib/content/evidence";
+import { questionsFor } from "@/lib/content/quiz";
 import { toTeamSnapshot } from "@/lib/server/dto";
 import { DEFAULT_ANSWER } from "@/lib/server/defaults";
 import { PUZZLES } from "@/lib/server/puzzles";
@@ -59,7 +61,8 @@ describe("opslag van een spelevenement", () => {
 
     const after = await store.teamContext(teamLogin.token, t0 + 3_000);
     expect(after.team.completions).toHaveLength(1);
-    expect(after.team.clues).toHaveLength(1);
+    expect(after.team.clues).toHaveLength(0);
+    expect(after.team.collectedEvidenceIds).toEqual([]);
     const snapshot = toTeamSnapshot(after.event, after.team, t0 + 3_000);
     const packed = JSON.stringify(snapshot);
     expect(packed).not.toContain(DEFAULT_ANSWER);
@@ -146,16 +149,34 @@ describe("opslag van een spelevenement", () => {
     await store.mutateTeam(joined.token, (event, team) => {
       team.briefingSeen = true;
     }, now + 11);
+    await expect(
+      store.mutateTeam(
+        joined.token,
+        (event, team, at) => submitFinale(event, team, "", at, { suspectId: "hendrik", explanation: "Hij wilde het beeld voor zijn collectie." }),
+        now + 12,
+      ),
+    ).rejects.toThrow(/zeven bewijsstukken/i);
+    await store.mutateTeam(joined.token, (event, team) => {
+      team.collectedEvidenceIds = [
+        "polaroid_1",
+        "security_camera",
+        "bank_transaction",
+        "secret_chat",
+        "polaroid_2",
+        "transport_document",
+        "sale_ad",
+      ];
+    }, now + 12.5);
     const closed = await store.mutateTeam(
       joined.token,
-      (event, team, at) => submitFinale(event, team, "", at, { suspectId: "mira", explanation: "Zij was volgens ons in de perskamer." }),
-      now + 12,
+      (event, team, at) => submitFinale(event, team, "", at, { suspectId: "hendrik", explanation: "Hij wilde het beeld voor zijn collectie." }),
+      now + 13,
     );
     expect(closed.correct).toBe(false);
     const solved = await store.mutateTeam(
       joined.token,
-      (event, team, at) => submitFinale(event, team, "", at, { suspectId: "noor", explanation: "Zij nam om 08:40 de kopie met het rode lint mee." }),
-      now + 13,
+      (event, team, at) => submitFinale(event, team, "", at, { suspectId: "bosman", explanation: "De initialen R.B. en de naam op het document wijzen naar hem." }),
+      now + 14,
     );
     expect(solved.correct).toBe(true);
     expect(second.event.status).toBe("lobby");
@@ -197,20 +218,72 @@ describe("opslag van een spelevenement", () => {
     const wrong = await store.mutateTeam(first.token, (event, team, at) => submitQuiz(event, team, "bk-1", "a", at), now + 7);
     expect(wrong.correct).toBe(false);
     expect(wrong.points).toBe(0);
-    const good = await store.mutateTeam(first.token, (event, team, at) => submitQuiz(event, team, "bk-1", "c", at), now + 8);
-    const again = await store.mutateTeam(first.token, (event, team, at) => submitQuiz(event, team, "bk-1", "c", at), now + 9);
+    expect(wrong.feedback).toContain("Bok de Korver");
+    const retry = await store.mutateTeam(first.token, (event, team, at) => submitQuiz(event, team, "bk-1", "c", at), now + 8);
+    expect(retry.points).toBe(0);
+    const good = await store.mutateTeam(first.token, (event, team, at) => submitQuiz(event, team, "bk-11", "b", at), now + 9);
+    const again = await store.mutateTeam(first.token, (event, team, at) => submitQuiz(event, team, "bk-11", "b", at), now + 10);
     expect(good.points).toBe(100);
     expect(again.points).toBe(0);
-    const red = await store.teamContext(first.token, now + 10);
-    const white = await store.teamContext(second.token, now + 11);
+    const red = await store.teamContext(first.token, now + 11);
+    const white = await store.teamContext(second.token, now + 12);
     expect(red.team.score).toBe(100);
-    expect(red.team.clues.some((clue) => clue.stationId === "quiz:bestuurskamer")).toBe(true);
+    expect(red.team.collectedEvidenceIds).toEqual([]);
     expect(white.team.score).toBe(0);
     expect(white.team.answers).toHaveLength(0);
-    const snapshot = toTeamSnapshot(red.event, red.team, now + 12);
-    expect(snapshot.event.questions.find((question) => question.id === "bk-1")?.solved).toBe(true);
+    const snapshot = toTeamSnapshot(red.event, red.team, now + 13);
+    expect(snapshot.event.questions.find((question) => question.id === "bk-11")?.solved).toBe(true);
+    expect(snapshot.event.questions.find((question) => question.id === "bk-1")?.closed).toBe(true);
     expect(JSON.stringify(snapshot.event.questions)).not.toContain('"answer"');
     expect(snapshot.event.locations.find((location) => location.id === "kasteel")?.available).toBe(false);
+    expect(snapshot.event.evidenceTotal).toBe(7);
+    expect(snapshot.event.finaleOpen).toBe(false);
     expect(created.event.stations.some((station) => station.game === "photo")).toBe(false);
+  });
+
+  it("geeft alle zeven bewijzen uit één kamer en bewaart ze als de kamers wijzigen", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "sparta-bewijs-"));
+    const store = createStore(path.join(dir, "store.json"));
+    const now = Date.now();
+    const created = await store.createEvent({
+      name: "Bewijs",
+      accessCode: "bewijs-1888",
+      teamCount: 1,
+      roomIds: ["bestuurskamer"],
+      now,
+    });
+    await store.mutateOrganizer(created.token, (event, at) => setStatus(event, "start", undefined, at), now + 1);
+    const login = await store.loginTeam(created.event.teams[0].joinCode, now + 2);
+    await store.mutateTeam(login.token, (event, team) => {
+      for (const question of questionsFor("bestuurskamer")) {
+        team.answers.push({ questionId: question.id, correct: true, points: 0, at: now, response: "x" });
+      }
+      const station = event.stations.find((item) => item.roomId === "bestuurskamer" && item.enabled);
+      if (!station) throw new Error("minigame ontbreekt");
+      team.completions.push({
+        stationId: station.id,
+        game: station.game,
+        points: 10,
+        completedAt: now,
+        breakdown: "test",
+        clueTitle: "",
+        clueText: "",
+        photo: null,
+      });
+    }, now + 3);
+    const done = await store.teamContext(login.token, now + 4);
+    expect(done.team.collectedEvidenceIds.slice().sort()).toEqual(EVIDENCE_ITEMS.map((item) => item.id).sort());
+    const key = done.event.assignmentKey;
+    const reloaded = createStore(path.join(dir, "store.json"));
+    const same = await reloaded.teamContext(login.token, now + 5);
+    expect(same.event.assignmentKey).toBe(key);
+    expect(same.event.evidenceAssignments).toEqual(done.event.evidenceAssignments);
+    await reloaded.mutateOrganizer(created.token, (event) => {
+      for (const room of event.rooms) room.available = room.id === "museum" || room.id === "kasteel";
+    }, now + 6);
+    const moved = await reloaded.teamContext(login.token, now + 7);
+    expect(moved.event.assignmentKey).toBe("kasteel,museum");
+    for (const item of EVIDENCE_ITEMS) expect(moved.team.collectedEvidenceIds).toContain(item.id);
+    expect(new Set(moved.team.collectedEvidenceIds).size).toBe(7);
   });
 });

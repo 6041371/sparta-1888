@@ -147,6 +147,24 @@ h3 { font-size: 1.25rem; margin-bottom: 6px; }
 .btn.paper { background: white; color: var(--ink); }
 .btn.full { width: 100%; }
 .paper .btn { white-space: normal; height: auto; text-align: center; line-height: 1.3; padding-top: 12px; padding-bottom: 12px; }
+.pitch { position: relative; border-radius: 18px; overflow: hidden; }
+.pitch img { display: block; width: 100%; height: auto; }
+.pitch-player {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  max-width: 34%;
+  min-height: 44px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: #111;
+  color: white;
+  font-weight: 700;
+  font-size: 0.72rem;
+  line-height: 1.2;
+}
+.pitch-player.keeper { background: #1d6b3a; }
+.pitch-player.done { outline: 3px solid #d7b56d; }
 .btn.warn { background: #f4e2c4; color: var(--warn); }
 
 .field { display: grid; gap: 6px; font-weight: 650; }

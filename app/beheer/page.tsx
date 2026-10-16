@@ -17,7 +17,7 @@ function randomCode() {
 export default function OrganizerGate() {
   const router = useRouter();
   const [mode, setMode] = useState<"create" | "login">("create");
-  const [name, setName] = useState("Sparta Rotterdam — De Verdwenen Erfenis");
+  const [name, setName] = useState("Sparta Rotterdam — Het Geheim van 1888");
   const [accessCode, setAccessCode] = useState("");
   const [confirmCode, setConfirmCode] = useState("");
   const [duration, setDuration] = useState("90");
