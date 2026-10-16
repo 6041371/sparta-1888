@@ -289,9 +289,21 @@ export function Scanner() {
   const scannerRef = useRef<{ stop: () => Promise<void> } | null>(null);
   const openedRef = useRef(false);
 
+  function safeStop() {
+    const scanner = scannerRef.current;
+    scannerRef.current = null;
+    if (!scanner) return;
+    try {
+      const result = scanner.stop();
+      if (result && typeof result.catch === "function") result.catch(() => undefined);
+    } catch {
+      // De camera was nog niet gestart. Dat mag de pagina niet laten crashen.
+    }
+  }
+
   useEffect(() => {
     return () => {
-      scannerRef.current?.stop().catch(() => undefined);
+      safeStop();
     };
   }, []);
 
@@ -303,7 +315,7 @@ export function Scanner() {
       return false;
     }
     openedRef.current = true;
-    scannerRef.current?.stop().catch(() => undefined);
+    safeStop();
     router.push(href);
     return true;
   }
@@ -327,11 +339,16 @@ export function Scanner() {
           },
         },
         (text) => {
-          openCode(text);
+          try {
+            openCode(text);
+          } catch {
+            setCameraError("De code is gelezen, maar de pagina kon hem niet openen. Typ de code hieronder.");
+          }
         },
         () => undefined,
       );
     } catch {
+      safeStop();
       setCameraError("De camera is niet beschikbaar of de toestemming is geweigerd. Vul de code van het bord hieronder in.");
     }
   }
@@ -347,7 +364,11 @@ export function Scanner() {
         className="stack"
         onSubmit={(event) => {
           event.preventDefault();
-          openCode(manual);
+          try {
+            openCode(manual);
+          } catch {
+            setCameraError("Die code kon niet worden geopend. Probeer het nog eens.");
+          }
         }}
       >
         <label className="field">
