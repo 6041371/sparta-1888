@@ -1,7 +1,7 @@
 import { randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
-import { BlobPreconditionFailedError, get, put } from "@vercel/blob";
+import { BlobNotFoundError, BlobPreconditionFailedError, get, head, put } from "@vercel/blob";
 import { PHOTO_PROMPTS } from "@/lib/copy";
 import { GameError } from "@/lib/game/errors";
 import {
@@ -162,10 +162,17 @@ export function createStore(filePath?: string) {
 
   async function read(): Promise<LoadedDatabase> {
     if (useBlob) {
+      let etag: string | null = null;
+      try {
+        const meta = await head(BLOB_PATH);
+        etag = meta.etag.replace(/^W\//, "").replaceAll('"', "") || null;
+      } catch (error) {
+        if (!(error instanceof BlobNotFoundError)) throw error;
+      }
       const result = await get(BLOB_PATH, { access: "private", useCache: false });
       if (!result || result.statusCode !== 200 || !result.stream) return { db: emptyDb(), etag: null };
       const raw = await new Response(result.stream).text();
-      return { db: parseDb(raw), etag: result.blob.etag };
+      return { db: parseDb(raw), etag };
     }
     try {
       const raw = await readFile(resolvedPath, "utf8");
@@ -200,7 +207,7 @@ export function createStore(filePath?: string) {
         const loaded = await read();
         const result = await fn(loaded.db);
         try {
-          await write(loaded.db, loaded.etag);
+          await write(loaded.db, attempt === 4 ? null : loaded.etag);
           return result;
         } catch (error) {
           if (error instanceof BlobPreconditionFailedError && attempt < 4) continue;
