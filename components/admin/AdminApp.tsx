@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/client/api";
-import { GAME_TITLES } from "@/lib/copy";
 import { formatRemaining, suggestedPhotoPoints } from "@/lib/game/logic";
 import type { OrganizerSnapshot, OrganizerStation, ScoringConfig } from "@/lib/types";
 import { Shield } from "@/components/Shield";
@@ -143,6 +142,10 @@ function Overview({
 }) {
   const pending = event.teams.reduce((sum, team) => sum + team.pendingPhotos.filter((photo) => photo.status === "pending").length, 0);
   const stuck = event.teams.filter((team) => team.stuck);
+  const [lobbyUrl, setLobbyUrl] = useState(`/onderzoek/${event.lobbyToken}`);
+  useEffect(() => {
+    setLobbyUrl(`${window.location.origin}/onderzoek/${event.lobbyToken}`);
+  }, [event.lobbyToken]);
   return (
     <div className="stack">
       <section className="stats">
@@ -152,12 +155,17 @@ function Overview({
         <article className="stat"><b>{stuck.length}</b><span>teams zonder start</span></article>
       </section>
       <div className="paper dark stack">
-        <p className="small">Evenement-id: {event.id}. Daarmee meld je dit scherm op een ander apparaat aan, samen met je toegangscode.</p>
+        <p className="small">Deelnemers-iPads openen alleen deze link. Zij vullen daar hun teamnaam in. Evenement-id: {event.id}.</p>
+        <p className="small">Lobby: <b>{lobbyUrl}</b></p>
         <div className="row">
-          {event.status === "draft" ? <Button disabled={busy} onClick={() => void run({ action: "start" }, "Het evenement is gestart.")}>Start het spel</Button> : null}
-          {event.status === "live" ? <Button disabled={busy} kind="warn" onClick={() => void run({ action: "pause" }, "Het spel staat op pauze.")}>Pauzeren</Button> : null}
+          <Button kind="paper" onClick={() => void navigator.clipboard.writeText(lobbyUrl)}>Kopieer de lobby-link</Button>
+        </div>
+        <p className="small">{event.teams.length} {event.teams.length === 1 ? "team is" : "teams zijn"} aangemeld.</p>
+        <div className="row">
+          {event.status === "lobby" ? <Button disabled={busy} onClick={() => void run({ action: "start" }, "Het onderzoek is gestart.")}>START HET ONDERZOEK</Button> : null}
+          {event.status === "active" ? <Button disabled={busy} kind="warn" onClick={() => void run({ action: "pause" }, "Het spel staat op pauze.")}>Pauzeren</Button> : null}
           {event.status === "paused" ? <Button disabled={busy} onClick={() => void run({ action: "resume" }, "Het spel gaat verder.")}>Verder</Button> : null}
-          {event.status === "live" || event.status === "paused" ? (
+          {event.status === "active" || event.status === "paused" ? (
             <Button disabled={busy} kind="dark" onClick={() => void run({ action: "end" }, "Het evenement is beëindigd en de uitslag staat open.")}>Beëindig en toon uitslag</Button>
           ) : null}
           {!event.finaleOpen ? <Button disabled={busy} onClick={() => void run({ action: "open-finale" }, "De finale is open.")}>Open de finale</Button> : <Button disabled={busy} kind="ghost" onClick={() => void run({ action: "close-finale" }, "De finale is weer dicht.")}>Sluit de finale</Button>}
@@ -171,7 +179,7 @@ function Overview({
           <article key={team.id} className="paper spread">
             <div>
               <b>{team.name}</b>
-              <p className="small" style={{ margin: 0 }}>{team.completedCount} stations · {team.clueCount} aanwijzingen · finale {team.finaleSolved ? "opgelost" : "open"}</p>
+              <p className="small" style={{ margin: 0 }}>Aangemeld · {team.completedCount} opdrachten · {team.clueCount} aanwijzingen · zaak {team.finaleSolved ? "opgelost" : "open"}</p>
             </div>
             <strong>{team.score}</strong>
           </article>
@@ -478,17 +486,18 @@ function QrSheet({ event }: { event: OrganizerSnapshot["event"] }) {
   return (
     <div className="stack qr-sheet">
       <div className="spread no-print">
-        <h2 className="display">QR-codes</h2>
+        <div>
+          <h2 className="display">Vaste QR-codes</h2>
+          <p className="small">Deze codes horen bij de ruimte, niet bij dit evenement. Print ze één keer en gebruik ze bij elk volgend evenement.</p>
+        </div>
         <Button kind="paper" onClick={() => window.print()}>Printen</Button>
       </div>
       <div className="qr-grid">
-        {event.stations.map((station) => (
-          <article key={station.id} className="paper qr-card stack">
-            <p className="kicker">{station.roomName}</p>
-            <h3 style={{ margin: 0 }}>{station.name}</h3>
-            <img src={`/api/qr/${station.code}`} alt={`QR-code voor ${station.name}`} />
-            <p>Code voor handmatige invoer: <b>{station.code}</b></p>
-            <p className="small">{GAME_TITLES[station.game]} · {station.visible ? station.locationLabel : "nu verborgen"}</p>
+        {event.rooms.map((room) => (
+          <article key={room.id} className="paper qr-card stack">
+            <img src={`/api/qr/ruimte/${room.id}`} alt={`QR-code voor ${room.name}`} />
+            <h3 className="display" style={{ margin: 0, textAlign: "center" }}>{room.name}</h3>
+            <p className="small" style={{ textAlign: "center" }}>{room.available ? "Vandaag open" : "Vandaag gesloten"}</p>
           </article>
         ))}
       </div>
@@ -736,7 +745,7 @@ function Results({
       <article className="paper stack">
         <h2 className="display">Uitslag</h2>
         <p>{event.resultsPublished ? "De teams kunnen het geheim en de stand zien." : "Beëindig het evenement om de officiële uitslag te tonen."}</p>
-        {event.status !== "ended" ? <Button disabled={busy || event.status === "draft"} onClick={() => void run({ action: "end" }, "Uitslag getoond.")}>Beëindig en toon uitslag</Button> : null}
+        {event.status !== "finished" ? <Button disabled={busy || event.status === "lobby"} onClick={() => void run({ action: "end" }, "Uitslag getoond.")}>Beëindig en toon uitslag</Button> : null}
       </article>
       {event.teams.map((team) => (
         <article key={team.id} className="paper stack">

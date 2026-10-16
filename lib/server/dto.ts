@@ -98,6 +98,7 @@ export function toTeamSnapshot(event: GameEvent, team: Team, now: number): TeamS
       finaleAttempts: current.finaleAttempts,
       hintsUsedKeys: current.hintsUsed.map((hint) => hint.key),
       hintsLeft: Math.max(0, event.scoring.maxHints - current.hintsUsed.length),
+      briefingSeen: current.briefingSeen,
       hintCost: event.scoring.hintCost,
       secretVisible,
     },
@@ -115,6 +116,7 @@ export function toTeamSnapshot(event: GameEvent, team: Team, now: number): TeamS
       resultsPublished: event.resultsPublished,
       secretText: secretVisible ? event.secretText : null,
       tiebreaker: event.tiebreaker,
+      lobbyToken: event.lobbyToken,
       stations: openStations.map((station) => publicStation(event, station, false)),
       rooms: event.rooms.map((room) => ({ id: room.id, name: room.name, available: room.available })),
     },
@@ -157,6 +159,7 @@ export function toOrganizerSnapshot(event: GameEvent, now: number, includePhotos
       secretText: event.secretText,
       resultsPublished: event.resultsPublished,
       tiebreaker: event.tiebreaker,
+      lobbyToken: event.lobbyToken,
       scoring: event.scoring,
       rooms: event.rooms,
       stations,
@@ -172,7 +175,7 @@ export function toOrganizerSnapshot(event: GameEvent, now: number, includePhotos
         finalePoints: team.finalePoints,
         lastScoreAt: team.lastScoreAt,
         hintsUsed: team.hintsUsed.length,
-        stuck: event.status === "live" && clock.elapsedMs > stuckAfter && team.completions.length === 0,
+        stuck: event.status === "active" && clock.elapsedMs > stuckAfter && team.completions.length === 0,
         pendingPhotos: team.completions
           .filter((completion) => completion.photo)
           .map((completion) => ({

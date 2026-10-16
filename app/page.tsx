@@ -7,25 +7,25 @@ export default function HomePage() {
       <div className="brand-row">
         <Shield />
         <div>
-          <p className="kicker">Sparta Stadion · teamspel</p>
-          <strong>90 minuten in Het Kasteel</strong>
+          <p className="kicker">Sparta Rotterdam</p>
+          <strong>De Verdwenen Erfenis</strong>
         </div>
       </div>
       <p className="kicker">Vertrouwelijk dossier</p>
       <h1 className="display">
-        SPARTA
+        DE VERDWENEN
         <br />
-        1888
+        ERFENIS
       </h1>
-      <p className="lead">Het geheim van Het Kasteel</p>
+      <p className="lead">Een onderzoek in Het Kasteel. De verdwijning is een spelverhaal.</p>
       <article className="paper ticket stack" style={{ marginTop: 22 }}>
         <div className="spread">
           <span className="stamp">Verzegeld</span>
           <span className="stamp gold">Spelverhaal</span>
         </div>
         <p className="serif" style={{ fontSize: "1.15rem", lineHeight: 1.5 }}>
-          Er liggen aanwijzingen over de oorsprong, de identiteit en de mentaliteit van Sparta. Dit dossier is verzonnen
-          voor het spel. Jullie kiezen de route, spelen de stations en kraken de eindcode.
+          Een oud dossier uit 1888 lijkt verdwenen. Jullie team zoekt in Het Kasteel naar aanwijzingen en wijst aan het
+          einde een verzonnen verdachte aan. Deelnemers openen de link van de instructeur en vullen alleen hun teamnaam in.
         </p>
         <div className="stats">
           <div className="stat">
@@ -39,12 +39,10 @@ export default function HomePage() {
         </div>
       </article>
       <div className="stack" style={{ marginTop: 18 }}>
-        <Link className="btn primary full" href="/deelnemen">
-          Ik heb een teamcode
+        <Link className="btn primary full" href="/beheer">
+          Instructeur
         </Link>
-        <Link className="btn ghost full" href="/beheer">
-          Organisator
-        </Link>
+        <p className="small">Deelnemers gebruiken de lobbylink op hun iPad. Die link kiest het evenement, niet een code op het scherm.</p>
       </div>
     </main>
   );

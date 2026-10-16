@@ -29,8 +29,11 @@ function team(partial: Partial<Team> = {}): Team {
     finalePoints: 0,
     finaleAttempts: 0,
     finaleSolvedAt: null,
+    finaleSuspect: null,
+    finaleExplanation: "",
     lastScoreAt: null,
     photoPrompts: {},
+    briefingSeen: false,
     createdAt: 0,
     ...partial,
   };
@@ -119,7 +122,7 @@ describe("timer, finale en ranglijst", () => {
   it("laat de pauze de resterende tijd stilzetten", () => {
     const durationMinutes = 90;
     const running = projectClock(
-      { status: "live", durationMinutes, startedAt: 0, pausedAt: null, pausedTotalMs: 0, endedAt: null },
+      { status: "active", durationMinutes, startedAt: 0, pausedAt: null, pausedTotalMs: 0, endedAt: null },
       10_000,
     );
     expect(running.remainingMs).toBe(90 * 60_000 - 10_000);
@@ -131,7 +134,7 @@ describe("timer, finale en ranglijst", () => {
     expect(paused.remainingMs).toBe(running.remainingMs);
 
     const resumed = projectClock(
-      { status: "live", durationMinutes, startedAt: 0, pausedAt: null, pausedTotalMs: 40_000, endedAt: null },
+      { status: "active", durationMinutes, startedAt: 0, pausedAt: null, pausedTotalMs: 40_000, endedAt: null },
       60_000,
     );
     expect(resumed.elapsedMs).toBe(20_000);
@@ -147,7 +150,7 @@ describe("timer, finale en ranglijst", () => {
   });
 
   it("houdt de finale dicht tot de organisatie haar opent en keert punten één keer uit", () => {
-    const closed = { status: "live" as const, finaleOpen: false, finaleAnswer: "ROOD1888" };
+    const closed = { status: "active" as const, finaleOpen: false, finaleAnswer: "ROOD1888" };
     expect(() => applyFinale(team(), closed, "ROOD1888", DEFAULT_SCORING, 10)).toThrow(/nog niet geopend/i);
 
     const open = { ...closed, finaleOpen: true };

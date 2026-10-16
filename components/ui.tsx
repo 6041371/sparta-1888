@@ -45,7 +45,7 @@ export function Field({
       {textarea ? (
         <textarea value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} />
       ) : (
-        <input type={type} value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} />
+        <input type={type} value={value} placeholder={placeholder} autoComplete="off" suppressHydrationWarning onChange={(event) => onChange(event.target.value)} />
       )}
     </label>
   );

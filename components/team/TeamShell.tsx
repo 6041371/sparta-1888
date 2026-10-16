@@ -57,16 +57,16 @@ export function TeamShell({ children }: { children: React.ReactNode }) {
   }, [refresh, router]);
 
   useEffect(() => {
-    if (!state || state.event.status !== "live") return;
+    if (!state || state.event.status !== "active") return;
     const started = Date.now();
     const base = state.event.remainingMs;
     const id = window.setInterval(() => setLeft(Math.max(0, base - (Date.now() - started))), 250);
     return () => window.clearInterval(id);
   }, [state]);
 
-  const level = warningLevel(state?.event.status === "live" ? left : state?.event.remainingMs ?? left);
+  const level = warningLevel(state?.event.status === "active" ? left : state?.event.remainingMs ?? left);
   useEffect(() => {
-    if (!state || state.event.status !== "live") return;
+    if (!state || state.event.status !== "active") return;
     if (level === "none" || level === "done") return;
     const key = `sparta-warn-${state.event.id}-${level}`;
     if (sessionStorage.getItem(key)) return;
@@ -74,11 +74,18 @@ export function TeamShell({ children }: { children: React.ReactNode }) {
     setPopup(level);
   }, [level, state]);
 
+  useEffect(() => {
+    if (!state) return;
+    if (state.event.status === "lobby" || (state.event.status === "active" && !state.team.briefingSeen)) {
+      router.replace(`/onderzoek/${state.event.lobbyToken}`);
+    }
+  }, [router, state]);
+
   const value = useMemo(() => ({ state, refresh }), [state, refresh]);
   if (!state) return <main className="app">{error ? <p>{error}</p> : <Loading label="Dossier openen…" />}</main>;
 
   const timerClass = level === "none" ? "" : level === "15" ? "m15" : level === "5" ? "m5" : level === "1" ? "m1" : "done";
-  const shown = state.event.status === "paused" || state.event.status === "ended" || state.event.status === "draft" ? state.event.remainingMs : left;
+  const shown = state.event.status === "paused" || state.event.status === "finished" || state.event.status === "lobby" ? state.event.remainingMs : left;
 
   return (
     <TeamContext.Provider value={value}>
@@ -89,16 +96,17 @@ export function TeamShell({ children }: { children: React.ReactNode }) {
             <strong>{state.team.name}</strong>
           </Link>
           <div className={`timer ${timerClass}`}>
-            <small>{state.event.status === "paused" ? "PAUZE" : state.event.status === "draft" ? "WACHT" : "TIJD"}</small>
+            <small>{state.event.status === "paused" ? "PAUZE" : state.event.status === "lobby" ? "WACHT" : state.event.status === "finished" ? "KLAAR" : "TIJD"}</small>
             {formatRemaining(shown)}
           </div>
         </header>
         {state.event.status === "paused" ? <div className="banner" style={{ marginBottom: 12 }}>Het spel is gepauzeerd door de organisatie.</div> : null}
-        {state.event.status === "draft" ? <div className="banner" style={{ marginBottom: 12 }}>De organisatie heeft het evenement nog niet gestart.</div> : null}
-        {state.event.status === "live" && level === "15" ? <div className="banner" style={{ marginBottom: 12 }}>Nog minder dan 15 minuten.</div> : null}
-        {state.event.status === "live" && level === "5" ? <div className="banner danger" style={{ marginBottom: 12 }}>Nog minder dan 5 minuten.</div> : null}
-        {state.event.status === "live" && level === "1" ? <div className="banner danger" style={{ marginBottom: 12 }}>Laatste minuut. Rond af waar je bent.</div> : null}
-        {state.event.status === "live" && level === "done" ? <div className="banner danger" style={{ marginBottom: 12 }}>De speeltijd is voorbij. Nieuwe stations leveren geen punten meer op.</div> : null}
+        {state.event.status === "lobby" ? <div className="banner" style={{ marginBottom: 12 }}>De instructeur heeft het onderzoek nog niet gestart.</div> : null}
+        {state.event.status === "finished" ? <div className="banner" style={{ marginBottom: 12 }}>Dit evenement is afgelopen.</div> : null}
+        {state.event.status === "active" && level === "15" ? <div className="banner" style={{ marginBottom: 12 }}>Nog minder dan 15 minuten.</div> : null}
+        {state.event.status === "active" && level === "5" ? <div className="banner danger" style={{ marginBottom: 12 }}>Nog minder dan 5 minuten.</div> : null}
+        {state.event.status === "active" && level === "1" ? <div className="banner danger" style={{ marginBottom: 12 }}>Laatste minuut. Rond af waar je bent.</div> : null}
+        {state.event.status === "active" && level === "done" ? <div className="banner danger" style={{ marginBottom: 12 }}>De speeltijd is voorbij. Nieuwe ruimtes leveren geen punten meer op.</div> : null}
         {children}
       </main>
       <nav className="nav">

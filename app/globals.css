@@ -126,8 +126,9 @@ h3 { font-size: 1.25rem; margin-bottom: 6px; }
   appearance: none;
   border: 0;
   border-radius: 999px;
-  min-height: 52px;
+  min-height: 56px;
   padding: 0 18px;
+  font-size: 1.05rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -359,14 +360,27 @@ textarea { min-height: 110px; resize: vertical; }
   .nav a { font-size: 0.66rem; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .timer.m1, .symbol, .spin { animation: none; }
+  .timer.m1, .symbol, .spin, .dossier-sheet { animation: none; }
 }
 @keyframes pop { from { transform: scale(0.8); opacity: 0.4; } to { transform: none; opacity: 1; } }
 @keyframes pulse { 50% { opacity: 0.55; } }
 @keyframes spin { to { transform: rotate(360deg); } }
+.suspect {
+  width: 100%;
+  text-align: left;
+  color: var(--ink);
+  border: 2px solid transparent;
+}
+.suspect.on { border-color: var(--red); }
+.dossier-sheet { animation: rise 0.4s ease; }
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
 @media print {
   body { background: white; color: black; }
+  body::before { display: none; }
   .no-print { display: none !important; }
   .qr-sheet { display: block !important; }
   .app { padding: 0; width: auto; }
+  .qr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .qr-card { break-inside: avoid; page-break-inside: avoid; box-shadow: none; }
 }

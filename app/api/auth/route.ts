@@ -27,6 +27,12 @@ export async function POST(request: Request) {
       return json({ eventId: logged.event.id, name: logged.event.name });
     }
 
+    if (body.kind === "register") {
+      const created = await store.registerTeam(String(body.lobbyToken ?? ""), String(body.teamName ?? ""), await readToken("team"));
+      await setToken("team", created.token);
+      return json({ teamName: created.team.name, eventName: created.event.name, status: created.event.status });
+    }
+
     if (body.kind === "team") {
       const logged = await store.loginTeam(String(body.joinCode ?? ""));
       await setToken("team", logged.token);

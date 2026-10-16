@@ -1,4 +1,4 @@
-export type EventStatus = "draft" | "live" | "paused" | "ended";
+export type EventStatus = "lobby" | "active" | "paused" | "finished";
 export type GameType = "reaction" | "memory" | "code" | "photo";
 export type TieBreaker = "finale_then_time" | "time_then_finale";
 export type WarningLevel = "none" | "15" | "5" | "1" | "done";
@@ -89,8 +89,11 @@ export interface Team {
   finalePoints: number;
   finaleAttempts: number;
   finaleSolvedAt: number | null;
+  finaleSuspect: string | null;
+  finaleExplanation: string;
   lastScoreAt: number | null;
   photoPrompts: Record<string, string>;
+  briefingSeen: boolean;
   createdAt: number;
 }
 
@@ -116,6 +119,7 @@ export interface GameEvent {
   teams: Team[];
   accessHash: string;
   accessSalt: string;
+  lobbyToken: string;
   createdAt: number;
 }
 
@@ -189,6 +193,7 @@ export interface TeamView {
   hintsLeft: number;
   hintCost: number;
   secretVisible: boolean;
+  briefingSeen: boolean;
 }
 
 export interface PublicEvent {
@@ -205,6 +210,7 @@ export interface PublicEvent {
   resultsPublished: boolean;
   secretText: string | null;
   tiebreaker: TieBreaker;
+  lobbyToken: string;
   stations: PublicStation[];
   rooms: { id: string; name: string; available: boolean }[];
 }
@@ -281,6 +287,7 @@ export interface OrganizerEvent {
   secretText: string;
   resultsPublished: boolean;
   tiebreaker: TieBreaker;
+  lobbyToken: string;
   scoring: ScoringConfig;
   rooms: Room[];
   stations: OrganizerStation[];

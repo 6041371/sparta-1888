@@ -1,7 +1,7 @@
 import { FINALE_HINT, FINALE_PROMPT, SECRET_DEFAULT } from "@/lib/copy";
 import type { Room, ScoringConfig, Station } from "@/lib/types";
 
-export const DEFAULT_ANSWER = "ROOD1888";
+export const DEFAULT_ANSWER = "NOOR";
 
 export const DEFAULT_SCORING: ScoringConfig = {
   reactionMax: 100,
@@ -19,7 +19,7 @@ export const DEFAULT_SCORING: ScoringConfig = {
 export const ROOM_TEMPLATES: Room[] = [
   { id: "bestuurskamer", name: "Bestuurskamer", available: true },
   { id: "perskamer", name: "Perskamer", available: true },
-  { id: "tribune", name: "Tribune", available: true },
+  { id: "tribune", name: "Tribune / veld", available: true },
   { id: "museum", name: "Museum", available: true },
   { id: "deelderzaal", name: "Jules Deelderzaal", available: true },
   { id: "kleedkamer", name: "Kleedkamer", available: true },
@@ -35,8 +35,8 @@ export const STATION_TEMPLATES: StationTemplate[] = [
     alternativeLocation: "",
     game: "reaction",
     puzzleId: null,
-    clueTitle: "De kleur",
-    clueText: "Het eerste deel van de eindcode is ROOD, in hoofdletters.",
+    clueTitle: "Vóór negen uur",
+    clueText: "Het dossier was al weg vóór negen uur. Een verklaring die pas om negen uur begint, mist het moment.",
     enabled: true,
     pointsMax: 100,
     photoPrompt: null,
@@ -48,8 +48,8 @@ export const STATION_TEMPLATES: StationTemplate[] = [
     alternativeLocation: "",
     game: "code",
     puzzleId: "dambord",
-    clueTitle: "Aaneen",
-    clueText: "Schrijf de delen van de eindcode direct achter elkaar, zonder spatie of streepje.",
+    clueTitle: "Geen dader gezien",
+    clueText: "De pers zag alleen het lege vak. Niemand heeft daar een persoon met de map zien weglopen.",
     enabled: true,
     pointsMax: 100,
     photoPrompt: null,
@@ -61,8 +61,8 @@ export const STATION_TEMPLATES: StationTemplate[] = [
     alternativeLocation: "",
     game: "memory",
     puzzleId: null,
-    clueTitle: "Het jaar",
-    clueText: "Het tweede deel van de eindcode is 1888.",
+    clueTitle: "08:40",
+    clueText: "Op het rondleidingsschema staat 08:40, vertrek vanuit het museum.",
     enabled: true,
     pointsMax: 100,
     photoPrompt: null,
@@ -74,8 +74,8 @@ export const STATION_TEMPLATES: StationTemplate[] = [
     alternativeLocation: "",
     game: "code",
     puzzleId: "verdubbeling",
-    clueTitle: "De lengte",
-    clueText: "De eindcode heeft acht tekens: eerst vier letters, daarna vier cijfers.",
+    clueTitle: "Rood lint",
+    clueText: "Iemand haalde een map met een rood lint weg, zonder archiefstempel. Dat is een kopie voor een rondleiding.",
     enabled: true,
     pointsMax: 100,
     photoPrompt: null,
@@ -87,8 +87,8 @@ export const STATION_TEMPLATES: StationTemplate[] = [
     alternativeLocation: "",
     game: "reaction",
     puzzleId: null,
-    clueTitle: "De volgorde",
-    clueText: "Eerst de kleur, daarna het jaartal.",
+    clueTitle: "Eerst de rondleiding",
+    clueText: "Eerst de rondleiding om 08:40, daarna pas het lege vak. De map is niet door een supporter meegenomen.",
     enabled: true,
     pointsMax: 70,
     photoPrompt: null,
@@ -101,8 +101,7 @@ export const STATION_TEMPLATES: StationTemplate[] = [
     game: "photo",
     puzzleId: null,
     clueTitle: "Het verhaal",
-    clueText:
-      "Het geheim is een spelverhaal over samenwerken, inzicht, initiatief en doorzettingsvermogen. Het is geen echt historisch document.",
+    clueText: "In de kleedkamer ligt een rode map tussen de trainingshesjes. Het is een kopie, geen origineel archiefstuk.",
     enabled: true,
     pointsMax: 100,
     photoPrompt: null,

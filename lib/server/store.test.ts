@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { toTeamSnapshot } from "@/lib/server/dto";
 import { DEFAULT_ANSWER } from "@/lib/server/defaults";
 import { PUZZLES } from "@/lib/server/puzzles";
-import { createStore, setStatus, submitCode, submitReaction, takeHint } from "@/lib/server/store";
+import { createStore, enterRoom, setStatus, submitCode, submitFinale, submitReaction, takeHint } from "@/lib/server/store";
 import type { ReactionRound } from "@/lib/types";
 
 function rounds(correct: boolean): ReactionRound[] {
@@ -98,5 +98,66 @@ describe("opslag van een spelevenement", () => {
     expect(right.awarded).toBe(100);
     const state = await store.teamContext(login.token, t0 + 50);
     expect(state.team.score).toBe(85);
+  });
+
+  it("koppelt teams via een lobbylink, start één keer en houdt QR-ruimtes vast", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "sparta-lobby-"));
+    const store = createStore(path.join(dir, "store.json"));
+    const now = Date.now();
+    const first = await store.createEvent({
+      name: "Ochtend",
+      accessCode: "kasteel-1",
+      teamCount: 0,
+      roomIds: ["museum", "perskamer"],
+      now,
+    });
+    const second = await store.createEvent({
+      name: "Middag",
+      accessCode: "kasteel-2",
+      teamCount: 0,
+      roomIds: ["kleedkamer"],
+      now: now + 1,
+    });
+    expect(first.event.lobbyToken).not.toBe(second.event.lobbyToken);
+    expect(first.event.rooms.find((room) => room.id === "bestuurskamer")?.available).toBe(false);
+    expect(first.event.stations.find((station) => station.roomId === "museum")?.roomId).toBe("museum");
+    expect(second.event.stations.find((station) => station.roomId === "museum")?.roomId).toBe("museum");
+
+    const joined = await store.registerTeam(first.event.lobbyToken, "De Rode Leeuwen", null, now + 2);
+    const again = await store.registerTeam(first.event.lobbyToken, "De Rode Leeuwen", joined.token, now + 3);
+    expect(again.team.id).toBe(joined.team.id);
+    await expect(store.registerTeam(first.event.lobbyToken, "De Rode Leeuwen", null, now + 4)).rejects.toThrow(/al aangemeld/i);
+    await expect(store.registerTeam(second.event.lobbyToken, "De Rode Leeuwen", null, now + 5)).resolves.toBeTruthy();
+
+    const started = await store.mutateOrganizer(first.token, (event, at) => {
+      setStatus(event, "start", undefined, at);
+      return event.startedAt;
+    }, now + 6);
+    const startedAgain = await store.mutateOrganizer(first.token, (event, at) => {
+      setStatus(event, "start", undefined, at);
+      return event.startedAt;
+    }, now + 9_000);
+    expect(startedAgain).toBe(started);
+
+    await expect(
+      store.mutateTeam(joined.token, (event, team, at) => enterRoom(event, team, "bestuurskamer", at), now + 10),
+    ).rejects.toThrow(/niet beschikbaar/i);
+
+    await store.mutateTeam(joined.token, (event, team) => {
+      team.briefingSeen = true;
+    }, now + 11);
+    const closed = await store.mutateTeam(
+      joined.token,
+      (event, team, at) => submitFinale(event, team, "", at, { suspectId: "mira", explanation: "Zij was volgens ons in de perskamer." }),
+      now + 12,
+    );
+    expect(closed.correct).toBe(false);
+    const solved = await store.mutateTeam(
+      joined.token,
+      (event, team, at) => submitFinale(event, team, "", at, { suspectId: "noor", explanation: "Zij nam om 08:40 de kopie met het rode lint mee." }),
+      now + 13,
+    );
+    expect(solved.correct).toBe(true);
+    expect(second.event.status).toBe("lobby");
   });
 });

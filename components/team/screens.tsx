@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { MISSION, RULES } from "@/lib/copy";
+import { MISSION, RULES, SUSPECTS } from "@/lib/copy";
 import { parseStationCode } from "@/lib/game/logic";
 import { useTeam } from "@/components/team/TeamShell";
 import { Banner, Button } from "@/components/ui";
@@ -173,7 +173,8 @@ export function Board() {
 
 export function FinaleScreen() {
   const { state, refresh } = useTeam();
-  const [answer, setAnswer] = useState("");
+  const [suspectId, setSuspectId] = useState("");
+  const [explanation, setExplanation] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -183,12 +184,14 @@ export function FinaleScreen() {
     setBusy(true);
     setMessage(null);
     try {
-      const data = await apiFinale(action === "hint" ? { action: "hint", code: "finale" } : { action: "finale", answer });
+      const data = await apiFinale(
+        action === "hint" ? { action: "hint", code: "finale" } : { action: "finale", suspectId, explanation },
+      );
       setMessage(data.outcome.feedback || data.outcome.hint || "Verstuurd.");
       setOk(Boolean(data.outcome.correct));
       await refresh();
     } catch (caught) {
-      setMessage(caught instanceof Error ? caught.message : "De finale reageerde niet.");
+      setMessage(caught instanceof Error ? caught.message : "De afronding reageerde niet.");
     } finally {
       setBusy(false);
     }
@@ -196,9 +199,10 @@ export function FinaleScreen() {
 
   return (
     <div className="stack">
-      <p className="kicker">Finale</p>
-      <h1 className="display">Kraak de eindcode</h1>
-      {!state.event.finaleOpen ? <Banner>De finale is nog verzegeld. De organisatie opent haar op het afgesproken moment.</Banner> : null}
+      <p className="kicker">Afronding</p>
+      <h1 className="display">Wijs de verdachte aan</h1>
+      <p className="small">De personages hieronder zijn verzonnen voor dit spel.</p>
+      {!state.event.finaleOpen ? <Banner>De afronding is nog dicht. De instructeur opent haar met de start, of later opnieuw.</Banner> : null}
       <article className="paper stack">
         <p className="serif">{state.event.finalePrompt}</p>
         {state.team.clues.length === 0 ? <p>Jullie hebben nog geen aanwijzingen verzameld.</p> : null}
@@ -216,16 +220,25 @@ export function FinaleScreen() {
           <p className="serif" style={{ whiteSpace: "pre-wrap" }}>{state.event.secretText}</p>
           <Link className="btn dark" href="/spel/uitslag">Bekijk de uitslag</Link>
         </article>
-      ) : state.event.finaleOpen && state.event.status !== "paused" && state.event.status !== "draft" ? (
+      ) : state.event.finaleOpen && state.event.status !== "paused" && state.event.status !== "lobby" ? (
         <>
+          <div className="stack">
+            {SUSPECTS.map((suspect) => (
+              <button key={suspect.id} type="button" className={`paper stack suspect ${suspectId === suspect.id ? "on" : ""}`} onClick={() => setSuspectId(suspect.id)}>
+                <b>{suspect.name}</b>
+                <span className="small">{suspect.role}</span>
+                <span className="serif">{suspect.statement}</span>
+              </button>
+            ))}
+          </div>
           <label className="field">
-            <span>Eindcode</span>
-            <input value={answer} onChange={(event) => setAnswer(event.target.value)} autoComplete="off" />
+            <span>Waarom deze persoon?</span>
+            <textarea value={explanation} onChange={(event) => setExplanation(event.target.value)} rows={4} />
           </label>
-          <Button full disabled={busy || !answer.trim()} onClick={() => void submit("finale")}>Controleer de code</Button>
+          <Button full disabled={busy || !suspectId || explanation.trim().length < 20} onClick={() => void submit("finale")}>Dien de verklaring in</Button>
           {state.event.finaleHintAvailable ? (
             <Button full kind="warn" disabled={busy || (state.team.hintsLeft <= 0 && !state.team.hintsUsedKeys.includes("finale"))} onClick={() => void submit("hint")}>
-              {state.team.hintsUsedKeys.includes("finale") ? "Toon finalehint" : `Finalehint (−${state.team.hintCost})`}
+              {state.team.hintsUsedKeys.includes("finale") ? "Toon aanwijzing" : `Extra aanwijzing (−${state.team.hintCost})`}
             </Button>
           ) : null}
         </>

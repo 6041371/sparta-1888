@@ -22,33 +22,65 @@ export const PHOTO_PROMPTS = [
 
 export const MISSION = {
   kicker: "Vertrouwelijk dossier",
-  title: "Het geheim van Het Kasteel",
-  lead: "Dit dossier is een spelverhaal. Het beschrijft geen echt archiefstuk en geen historische vondst.",
+  title: "De Verdwenen Erfenis",
+  lead: "Dit dossier is een spelverhaal. De diefstal, het archiefstuk en de verdachten zijn verzonnen.",
   body: [
-    "Er liggen aanwijzingen verspreid over Het Kasteel. Ze gaan over de oorsprong, de identiteit en de mentaliteit van Sparta — zoals dit spel die verzint, niet zoals een archief ze zou bewaren.",
-    "Jullie kiezen zelf de route langs de open stations. Elke voltooide opdracht levert punten op en kan een aanwijzing openen.",
-    "Aan het eind leggen jullie die aanwijzingen naast elkaar en kraken jullie de eindcode.",
+    "Het is een bijzondere dag bij Sparta Rotterdam. Tijdens het doorspitten van het historische archief wordt een ontdekking gedaan: een oud dossier uit 1888, het jaar waarin Sparta werd opgericht.",
+    "Maar er is iets mis. Een belangrijk archiefstuk is verdwenen. Op de plek waar het hoorde te liggen, vinden medewerkers alleen een leeg vak en een mysterieuze boodschap: ‘Wie de geschiedenis kent, zal de waarheid vinden.’",
+    "Op verschillende plekken in Het Kasteel zijn vreemde aanwijzingen gevonden. Oude documenten lijken te zijn verplaatst, foto's liggen op de verkeerde plek en sommige verklaringen spreken elkaar tegen.",
+    "Jullie zijn aangesteld als speciaal onderzoeksteam. In verschillende ruimtes van Het Kasteel moeten jullie opdrachten uitvoeren, bewijs verzamelen en verklaringen onderzoeken.",
+    "Wat is er precies verdwenen? Wie zit erachter? En wat was het motief? Niet iedere aanwijzing vertelt het hele verhaal. Verzamel het bewijs, vergelijk de verklaringen en ontdek wat er werkelijk is gebeurd.",
+    "Jullie hebben beperkte tijd om de zaak op te lossen. Aan het einde moeten jullie een verdachte aanwijzen en uitleggen waarom jullie denken dat diegene verantwoordelijk is.",
+    "Het dossier ligt klaar. Het onderzoek begint nu. Sparta rekent op jullie.",
   ],
   facts:
-    "De historische feiten in dit spel blijven beperkt tot wat openbaar bekend is: Sparta Rotterdam is opgericht in 1888, de clubkleuren zijn rood en wit, en de thuishaven staat bekend als Het Kasteel. Al het andere in dit dossier is fictie voor het teamspel.",
+    "De historische feiten in dit spel blijven beperkt tot wat openbaar bekend is: Sparta Rotterdam is opgericht in 1888, de clubkleuren zijn rood en wit, en de thuishaven staat bekend als Het Kasteel. De verdwijning en alle personages zijn fictie voor het teamspel. Dit zijn geen beschuldigingen aan echte personen.",
 };
 
+export const SUSPECTS = [
+  {
+    id: "mira",
+    name: "Mira Vos",
+    role: "Spelpersonage · pers",
+    statement: "Ik keek om negen uur in het archiefvak. Het was leeg. Ik heb niets meegenomen.",
+  },
+  {
+    id: "daan",
+    name: "Daan de Wit",
+    role: "Spelpersonage · bestuur",
+    statement: "Om half negen was de map al weg. Volgens mij heeft een onbekende supporter hem meegenomen.",
+  },
+  {
+    id: "noor",
+    name: "Noor Klein",
+    role: "Spelpersonage · museum",
+    statement: "Ik haalde om 08:40 een map met een rood lint op voor een rondleiding. Ik dacht dat het een kopie was.",
+  },
+  {
+    id: "finn",
+    name: "Finn Bakker",
+    role: "Spelpersonage · facilitair",
+    statement: "Ik heb alleen fotolijsten recht gezet. Aan mappen kom ik niet.",
+  },
+] as const;
+
+export const CULPRIT_ID = "noor";
+
 export const RULES = [
-  "Blijf bij je team en volg de aanwijzingen van de begeleiders en de huisregels van het stadion.",
-  "Kies zelf een route. Alleen ruimtes die de organisatie heeft opengesteld, zijn speelstations.",
-  "Scan de QR-code bij het station of vul de stationcode met de hand in.",
-  "Een station levert één keer punten op. Opnieuw scannen opent het resultaat, geen tweede score.",
-  "Hints kosten punten. Het bedrag en het aantal hints stelt de organisatie in.",
+  "Blijf bij je team en volg de aanwijzingen van de instructeur en de huisregels van het stadion.",
+  "Scan de vaste QR-code in een ruimte. Alleen ruimtes die de instructeur heeft opengesteld, zijn vandaag te spelen.",
+  "Een opdracht levert één keer punten op. Opnieuw scannen opent het resultaat, geen tweede score.",
+  "Hints kosten punten. Het bedrag en het aantal hints stelt de instructeur in.",
   "De klok loopt vanaf de officiële start en is voor elk team dezelfde. Verversen zet de tijd niet terug.",
-  "De finale gaat open wanneer de organisatie die vrijgeeft. Eerder insturen kan niet.",
-  "Overleg binnen je team mag. Andere teams hinderen of hun code afkijken hoort er niet bij.",
+  "Aan het einde wijzen jullie één spelpersonage aan en leggen jullie uit waarom.",
+  "Overleg binnen je team mag. Andere teams hinderen hoort er niet bij.",
 ];
 
 export const SECRET_DEFAULT =
-  "Dit geheim hoort bij het spel. Er is geen echt document gevonden en dit verhaal voegt niets toe aan de clubhistorie.\n\nHet geheim van Het Kasteel is de manier waarop jullie vandaag speelden. Samenwerken, inzicht, initiatief en doorzettingsvermogen: wie dat deelt, houdt het kasteel overeind. Niet als muur van steen, maar als team.";
+  "Dit geheim hoort bij het spel. Er is geen echt document verdwenen en geen echte persoon beschuldigd.\n\nNoor Klein, de fictieve museumgids, nam om 08:40 een map met een rood lint mee voor een rondleiding. Ze dacht dat het een kopie was en liet die in de kleedkamer achter. Het origineel is nooit gestolen. De andere verklaringen kloppen niet met dat tijdstip.\n\nDe erfenis van Sparta zit niet in die map. Die zit in hoe jullie samen keken, overlegden en doorzetten.";
 
 export const FINALE_PROMPT =
-  "Combineer de aanwijzingen tot één eindcode. Gebruik hoofdletters of kleine letters; spaties en streepjes tellen niet mee.";
+  "Wijs het spelpersonage aan dat de map heeft verplaatst en leg uit waarom de andere verklaringen niet kloppen. Dit zijn verzonnen personages, geen echte mensen.";
 
 export const FINALE_HINT =
-  "Jullie zoeken één reeks zonder spatie. De aanwijzingen van de stations horen achter elkaar.";
+  "Vergelijk de tijden. Wie was als enige in het museum vóór negen uur, met een map zonder archiefstempel?";

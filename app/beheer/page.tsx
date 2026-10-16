@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/client/api";
+import { ROOM_TEMPLATES } from "@/lib/server/defaults";
 import { Shield } from "@/components/Shield";
 import { Banner, Button, Field } from "@/components/ui";
 
@@ -16,12 +17,11 @@ function randomCode() {
 export default function OrganizerGate() {
   const router = useRouter();
   const [mode, setMode] = useState<"create" | "login">("create");
-  const [name, setName] = useState("SPARTA 1888 — Het geheim van Het Kasteel");
+  const [name, setName] = useState("Sparta Rotterdam — De Verdwenen Erfenis");
   const [accessCode, setAccessCode] = useState("");
   const [confirmCode, setConfirmCode] = useState("");
   const [duration, setDuration] = useState("90");
-  const [teamCount, setTeamCount] = useState("4");
-  const [teamNames, setTeamNames] = useState("");
+  const [roomIds, setRoomIds] = useState<string[]>(ROOM_TEMPLATES.map((room) => room.id));
   const [eventId, setEventId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -44,14 +44,19 @@ export default function OrganizerGate() {
     setBusy(true);
     setError(null);
     try {
-      const names = teamNames.split("\n").map((line) => line.trim()).filter(Boolean);
+      if (roomIds.length < 1) {
+        setError("Kies minstens één ruimte.");
+        setBusy(false);
+        return;
+      }
       const result = await api<{ eventId: string }>("/api/auth", {
         kind: "create",
         name,
         accessCode,
         durationMinutes: Number(duration),
-        teamCount: Number(teamCount),
-        teamNames: names,
+        teamCount: 0,
+        teamNames: [],
+        roomIds,
       });
       localStorage.setItem("sparta-event-id", result.eventId);
       sessionStorage.setItem("sparta-access-once", accessCode);
@@ -82,8 +87,8 @@ export default function OrganizerGate() {
         <Shield size={42} />
         <span>Terug</span>
       </Link>
-      <p className="kicker">Organisatie</p>
-      <h1 className="display">Het Kasteel openen</h1>
+      <p className="kicker">Instructeur</p>
+      <h1 className="display">Evenement openen</h1>
       <div className="row">
         <button type="button" className={`chip ${mode === "create" ? "on" : ""}`} onClick={() => setMode("create")}>Nieuw evenement</button>
         <button type="button" className={`chip ${mode === "login" ? "on" : ""}`} onClick={() => setMode("login")}>Ik heb al een code</button>
@@ -96,8 +101,20 @@ export default function OrganizerGate() {
           <Field label="Herhaal de toegangscode" value={confirmCode} onChange={setConfirmCode} type="password" />
           <p className="small">De code wordt versleuteld bewaard. Er staat geen vast wachtwoord in de app. Noteer hem, want hij kan niet worden teruggehaald.</p>
           <Field label="Duur in minuten" type="number" value={duration} onChange={setDuration} />
-          <Field label="Aantal teams" type="number" value={teamCount} onChange={setTeamCount} />
-          <Field label="Teamnamen, één per regel" textarea value={teamNames} onChange={setTeamNames} placeholder={"Rood\nWit"} />
+          <fieldset className="stack" style={{ border: 0, padding: 0 }}>
+            <legend>Ruimtes voor deze dag</legend>
+            {ROOM_TEMPLATES.map((room) => (
+              <label key={room.id} className="spread">
+                <span>{room.name}</span>
+                <input
+                  type="checkbox"
+                  checked={roomIds.includes(room.id)}
+                  onChange={() => setRoomIds((current) => current.includes(room.id) ? current.filter((id) => id !== room.id) : [...current, room.id])}
+                />
+              </label>
+            ))}
+          </fieldset>
+          <p className="small">Teams melden zich zelf aan op de iPads via de lobbylink. Zij voeren geen evenementcode in.</p>
           <Button type="submit" disabled={busy}>Maak het evenement</Button>
           <Button
             type="button"
@@ -107,12 +124,10 @@ export default function OrganizerGate() {
               const generated = randomCode();
               setAccessCode(generated);
               setConfirmCode(generated);
-              setTeamCount("2");
-              setTeamNames("Oefenteam Rood\nOefenteam Wit");
               setError(null);
             }}
           >
-            Vul een oefensessie in
+            Vul een oefencode in
           </Button>
         </form>
       ) : (

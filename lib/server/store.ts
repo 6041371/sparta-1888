@@ -5,6 +5,7 @@ import { BlobNotFoundError, BlobPreconditionFailedError, get, head, put } from "
 import { PHOTO_PROMPTS } from "@/lib/copy";
 import { GameError } from "@/lib/game/errors";
 import {
+  applyAccusation,
   applyCompletion,
   applyFinale,
   applyHint,
@@ -50,11 +51,32 @@ export interface CreateEventInput {
   durationMinutes?: number;
   teamCount?: number;
   teamNames?: string[];
+  roomIds?: string[];
   now?: number;
 }
 
 function emptyDb(): Database {
   return { version: 1, events: {}, sessions: {} };
+}
+
+function reviveEvent(event: GameEvent) {
+  const status = String(event.status);
+  event.status =
+    status === "draft" || status === "lobby"
+      ? "lobby"
+      : status === "live" || status === "active"
+        ? "active"
+        : status === "ended" || status === "finished"
+          ? "finished"
+          : status === "paused"
+            ? "paused"
+            : "lobby";
+  if (!event.lobbyToken) event.lobbyToken = `lobby_${event.id.replace(/^evt_/, "")}${event.accessSalt.slice(0, 8)}`;
+  for (const team of event.teams) {
+    team.briefingSeen = Boolean(team.briefingSeen);
+    team.finaleExplanation = team.finaleExplanation ?? "";
+    team.finaleSuspect = team.finaleSuspect ?? null;
+  }
 }
 
 function makeToken(bytes = 24): string {
@@ -127,8 +149,11 @@ function blankTeam(name: string, joinCode: string, now: number): Team {
     finalePoints: 0,
     finaleAttempts: 0,
     finaleSolvedAt: null,
+    finaleSuspect: null,
+    finaleExplanation: "",
     lastScoreAt: null,
     photoPrompts: {},
+    briefingSeen: false,
     createdAt: now,
   };
 }
@@ -157,6 +182,7 @@ export function createStore(filePath?: string) {
   function parseDb(raw: string): Database {
     const parsed = JSON.parse(raw) as Database;
     if (!parsed.events || !parsed.sessions) return emptyDb();
+    for (const event of Object.values(parsed.events)) reviveEvent(event);
     return parsed;
   }
 
@@ -257,7 +283,8 @@ export function createStore(filePath?: string) {
         }
         const durationMinutes = asInt(input.durationMinutes ?? 90, 10, 180, "De speelduur");
         const names = Array.isArray(input.teamNames) ? input.teamNames : [];
-        const teamCount = asInt(input.teamCount ?? (names.length || 4), 1, 24, "Het aantal teams");
+        const requested = input.teamCount == null ? names.length : Number(input.teamCount);
+        const teamCount = requested === 0 ? 0 : asInt(requested, 1, 24, "Het aantal teams");
         const usedJoins = new Set<string>();
         for (const event of Object.values(db.events)) {
           for (const team of event.teams) usedJoins.add(team.joinCode);
@@ -274,7 +301,7 @@ export function createStore(filePath?: string) {
         const event: GameEvent = {
           id: `evt_${makeCode(4).toLowerCase()}`,
           name,
-          status: "draft",
+          status: "lobby",
           durationMinutes,
           startedAt: null,
           pausedAt: null,
@@ -288,11 +315,15 @@ export function createStore(filePath?: string) {
           resultsPublished: false,
           tiebreaker: "finale_then_time",
           scoring: { ...DEFAULT_SCORING },
-          rooms: ROOM_TEMPLATES.map((room) => ({ ...room })),
+          rooms: ROOM_TEMPLATES.map((room) => ({
+            ...room,
+            available: Array.isArray(input.roomIds) ? input.roomIds.map(String).includes(room.id) : room.available,
+          })),
           stations: STATION_TEMPLATES.map((station) => ({ ...station, code: freshCode(usedStations) })),
           teams: labels.map((label) => blankTeam(label, freshCode(usedJoins), now)),
           accessHash: access.hash,
           accessSalt: access.salt,
+          lobbyToken: `lobby_${makeCode(12).toLowerCase()}`,
           createdAt: now,
         };
         db.events[event.id] = event;
@@ -322,6 +353,53 @@ export function createStore(filePath?: string) {
           return { event, team, token };
         }
         throw new GameError("Deze teamcode hoort bij geen enkel team.", 401);
+      });
+    },
+
+    async registerTeam(lobbyToken: string, teamName: string, existingToken: string | null, now = Date.now()) {
+      return commit(async (db) => {
+        const event = Object.values(db.events).find((item) => item.lobbyToken === lobbyToken);
+        if (!event) throw new GameError("Deze lobby bestaat niet. Vraag de instructeur om de juiste link.", 404);
+        if (event.status === "finished") throw new GameError("Dit evenement is afgelopen.", 403);
+        const name = cleanText(teamName, 40, "De teamnaam");
+        const session = existingToken ? db.sessions[existingToken] : undefined;
+        if (session && session.eventId === event.id && session.teamId && session.expiresAt > now) {
+          const own = event.teams.find((team) => team.id === session.teamId);
+          if (own && own.name.toLowerCase() === name.toLowerCase()) {
+            session.expiresAt = now + SESSION_MS;
+            return { event, team: own, token: existingToken as string };
+          }
+        }
+        if (event.teams.some((team) => team.name.toLowerCase() === name.toLowerCase())) {
+          throw new GameError("Deze teamnaam is al aangemeld.", 409);
+        }
+        const usedJoins = new Set<string>();
+        for (const item of Object.values(db.events)) {
+          for (const team of item.teams) usedJoins.add(team.joinCode);
+        }
+        const team = blankTeam(name, freshCode(usedJoins), now);
+        event.teams.push(team);
+        const token = issue(db, "team", event.id, team.id, now);
+        return { event, team, token };
+      });
+    },
+
+    async lobbyState(lobbyToken: string, teamToken: string | null, now = Date.now()) {
+      return lock(async () => {
+        const { db } = await read();
+        const event = Object.values(db.events).find((item) => item.lobbyToken === lobbyToken);
+        if (!event) throw new GameError("Deze lobby bestaat niet. Vraag de instructeur om de juiste link.", 404);
+        const session = teamToken ? db.sessions[teamToken] : undefined;
+        const linked = session && session.eventId === event.id && session.expiresAt > now
+          ? event.teams.find((team) => team.id === session.teamId) ?? null
+          : null;
+        return {
+          eventId: event.id,
+          name: event.name,
+          status: event.status,
+          teamName: linked?.name ?? null,
+          briefingSeen: linked?.briefingSeen ?? false,
+        };
       });
     },
 
@@ -501,7 +579,7 @@ export function renameTeam(event: GameEvent, teamId: string, name: unknown) {
 export function deleteTeam(event: GameEvent, teamId: string, confirm: unknown, dbSessions?: Record<string, Session>) {
   const team = eventTeam(event, teamId);
   if (confirm !== team.name) throw new GameError("Typ de teamnaam om het team te verwijderen.");
-  if (event.teams.length <= 1 && event.status !== "draft") {
+  if (event.teams.length <= 1 && event.status !== "lobby") {
     throw new GameError("Laat minstens één team over zolang het spel loopt.");
   }
   event.teams = event.teams.filter((item) => item.id !== teamId);
@@ -536,22 +614,23 @@ export function clearCompletion(event: GameEvent, teamId: string, stationId: str
 
 export function setStatus(event: GameEvent, action: string, confirm: unknown, now: number) {
   if (action === "start") {
-    if (event.status === "live") throw new GameError("Het evenement is al gestart.");
-    if (event.status === "ended") throw new GameError("Zet het evenement eerst terug naar een nieuwe sessie.");
-    if (event.teams.length < 1) throw new GameError("Voeg minstens één team toe.");
+    if (event.status === "active") return;
+    if (event.status === "finished") throw new GameError("Zet het evenement eerst terug naar een nieuwe sessie.");
+    if (event.teams.length < 1) throw new GameError("Er is nog geen team aangemeld.");
     if (visibleStations(event.stations, event.rooms).length < 1) {
       throw new GameError("Zet minstens één ruimte of alternatief station open.");
     }
-    event.status = "live";
+    event.status = "active";
     event.startedAt = now;
     event.pausedAt = null;
     event.pausedTotalMs = 0;
     event.endedAt = null;
     event.resultsPublished = false;
+    event.finaleOpen = true;
     return;
   }
   if (action === "pause") {
-    if (event.status !== "live") throw new GameError("Alleen een lopend spel kan worden gepauzeerd.");
+    if (event.status !== "active") throw new GameError("Alleen een lopend spel kan worden gepauzeerd.");
     event.status = "paused";
     event.pausedAt = now;
     return;
@@ -560,22 +639,22 @@ export function setStatus(event: GameEvent, action: string, confirm: unknown, no
     if (event.status !== "paused" || event.pausedAt == null) throw new GameError("Het spel staat niet op pauze.");
     event.pausedTotalMs += now - event.pausedAt;
     event.pausedAt = null;
-    event.status = "live";
+    event.status = "active";
     return;
   }
   if (action === "end") {
-    if (event.status === "draft") throw new GameError("Het evenement is nog niet gestart.");
+    if (event.status === "lobby") throw new GameError("Het evenement is nog niet gestart.");
     if (event.status === "paused" && event.pausedAt) {
       event.pausedTotalMs += now - event.pausedAt;
       event.pausedAt = null;
     }
-    event.status = "ended";
+    event.status = "finished";
     event.endedAt = now;
     event.resultsPublished = true;
     return;
   }
   if (action === "open-finale") {
-    if (event.status === "draft") throw new GameError("Start het evenement voordat je de finale opent.");
+    if (event.status === "lobby") throw new GameError("Start het evenement voordat je de finale opent.");
     event.finaleOpen = true;
     return;
   }
@@ -585,7 +664,7 @@ export function setStatus(event: GameEvent, action: string, confirm: unknown, no
   }
   if (action === "reset") {
     if (confirm !== "RESET") throw new GameError("Typ RESET om de speelsessie leeg te maken.");
-    event.status = "draft";
+    event.status = "lobby";
     event.startedAt = null;
     event.pausedAt = null;
     event.pausedTotalMs = 0;
@@ -601,6 +680,9 @@ export function setStatus(event: GameEvent, action: string, confirm: unknown, no
       team.finalePoints = 0;
       team.finaleAttempts = 0;
       team.finaleSolvedAt = null;
+      team.finaleSuspect = null;
+      team.finaleExplanation = "";
+      team.briefingSeen = false;
       team.lastScoreAt = null;
       team.photoPrompts = {};
       team.score = 0;
@@ -811,7 +893,46 @@ export function retakePhoto(event: GameEvent, teamId: string, stationId: string)
   team.score = next.score;
 }
 
-export function submitFinale(event: GameEvent, team: Team, answer: unknown, now: number) {
+export function markBriefing(team: Team) {
+  team.briefingSeen = true;
+}
+
+export function enterRoom(event: GameEvent, team: Team, roomId: string, now: number) {
+  const room = event.rooms.find((item) => item.id === roomId);
+  if (!room) throw new GameError("Deze QR-code hoort niet bij een ruimte in Het Kasteel.", 404);
+  if (!room.available) throw new GameError("Deze ruimte is vandaag niet beschikbaar.", 403);
+  const station = event.stations.find((item) => item.roomId === room.id && item.enabled);
+  if (!station) throw new GameError("Voor deze ruimte staat vandaag geen opdracht open.", 403);
+  return enterStation(event, team, station.code, now);
+}
+
+export function submitFinale(
+  event: GameEvent,
+  team: Team,
+  answer: unknown,
+  now: number,
+  accusation?: { suspectId?: unknown; explanation?: unknown },
+) {
+  if (accusation && typeof accusation.suspectId === "string") {
+    const result = applyAccusation(
+      team,
+      event,
+      accusation.suspectId,
+      typeof accusation.explanation === "string" ? accusation.explanation : "",
+      event.scoring,
+      now,
+    );
+    event.teams = event.teams.map((item) => (item.id === team.id ? result.team : item));
+    const secret = result.correct && (result.team.finaleSolved || event.resultsPublished) ? event.secretText : null;
+    return {
+      correct: result.correct,
+      already: result.already,
+      feedback: result.feedback,
+      score: result.team.score,
+      finalePoints: result.already ? 0 : result.correct ? event.scoring.finalePoints : 0,
+      secret,
+    };
+  }
   const result = applyFinale(team, event, typeof answer === "string" ? answer : "", event.scoring, now);
   event.teams = event.teams.map((item) => (item.id === team.id ? result.team : item));
   const secret = result.correct && (result.team.finaleSolved || event.resultsPublished) ? event.secretText : null;

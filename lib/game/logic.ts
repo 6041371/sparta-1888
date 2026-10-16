@@ -1,3 +1,4 @@
+import { CULPRIT_ID, SUSPECTS } from "@/lib/copy";
 import type {
   Completion,
   EventStatus,
@@ -51,13 +52,13 @@ type ClockInput = Pick<
 
 export function projectClock(event: ClockInput, now: number): { remainingMs: number; elapsedMs: number } {
   const total = event.durationMinutes * 60_000;
-  if (event.startedAt == null || event.status === "draft") {
+  if (event.startedAt == null || event.status === "lobby") {
     return { remainingMs: total, elapsedMs: 0 };
   }
 
   let effectiveNow = now;
   if (event.status === "paused" && event.pausedAt != null) effectiveNow = event.pausedAt;
-  if (event.status === "ended" && event.endedAt != null) effectiveNow = event.endedAt;
+  if (event.status === "finished" && event.endedAt != null) effectiveNow = event.endedAt;
 
   const elapsedMs = Math.max(0, effectiveNow - event.startedAt - event.pausedTotalMs);
   return { remainingMs: Math.max(0, total - elapsedMs), elapsedMs };
@@ -234,7 +235,7 @@ export function applyFinale(
   config: Pick<ScoringConfig, "finalePoints" | "wrongFinalePenalty">,
   now: number,
 ): { team: Team; correct: boolean; already: boolean; feedback: string } {
-  if (event.status === "draft") throw new GameError("Het evenement is nog niet gestart.", 403);
+  if (event.status === "lobby") throw new GameError("Het evenement is nog niet gestart.", 403);
   if (event.status === "paused") throw new GameError("Het spel is gepauzeerd door de organisatie.", 403);
   if (!event.finaleOpen) throw new GameError("De finale is nog niet geopend.", 403);
   if (team.finaleSolved) {
@@ -268,6 +269,58 @@ export function applyFinale(
     now,
   );
   return { team: next, correct: true, already: false, feedback: "De code klopt." };
+}
+
+export function applyAccusation(
+  team: Team,
+  event: { status: EventStatus; finaleOpen: boolean },
+  suspectId: string,
+  explanation: string,
+  config: Pick<ScoringConfig, "finalePoints" | "wrongFinalePenalty">,
+  now: number,
+): { team: Team; correct: boolean; already: boolean; feedback: string } {
+  if (event.status === "lobby") throw new GameError("Het evenement is nog niet gestart.", 403);
+  if (event.status === "paused") throw new GameError("Het spel is gepauzeerd door de organisatie.", 403);
+  if (!event.finaleOpen) throw new GameError("De afronding is nog niet geopend.", 403);
+  if (team.finaleSolved) {
+    return { team, correct: true, already: true, feedback: "Jullie hebben de zaak al opgelost." };
+  }
+  const id = suspectId.trim().toLowerCase();
+  if (!SUSPECTS.some((suspect) => suspect.id === id)) throw new GameError("Kies een verdachte.");
+  const text = explanation.replace(/[\u0000-\u001F]/g, "").trim();
+  if (text.length < 20) throw new GameError("Leg in een paar zinnen uit waarom jullie deze persoon aanwijzen.");
+  const correct = id === CULPRIT_ID;
+  if (!correct) {
+    const adjustments =
+      config.wrongFinalePenalty > 0
+        ? [...team.adjustments, { points: -config.wrongFinalePenalty, reason: "Onjuiste verdachte", at: now }]
+        : team.adjustments;
+    return {
+      team: withScore({
+        ...team,
+        finaleAttempts: team.finaleAttempts + 1,
+        finaleSuspect: id,
+        finaleExplanation: text,
+        adjustments,
+      }),
+      correct: false,
+      already: false,
+      feedback: "Deze verklaring past niet bij het bewijs. Vergelijk de tijden nog eens.",
+    };
+  }
+  const next = withScore(
+    {
+      ...team,
+      finaleSolved: true,
+      finalePoints: config.finalePoints,
+      finaleAttempts: team.finaleAttempts + 1,
+      finaleSolvedAt: now,
+      finaleSuspect: id,
+      finaleExplanation: text,
+    },
+    now,
+  );
+  return { team: next, correct: true, already: false, feedback: "Het bewijs wijst inderdaad naar dit spelpersonage." };
 }
 
 function sameRank(a: Team, b: Team, tiebreaker: TieBreaker): boolean {
@@ -315,9 +368,9 @@ export function rankTeams(teams: Team[], tiebreaker: TieBreaker, finaleOpen: boo
 }
 
 export function playBlockReason(event: ClockInput, now: number): string | null {
-  if (event.status === "draft") return "Het evenement is nog niet gestart.";
+  if (event.status === "lobby") return "Het evenement is nog niet gestart.";
   if (event.status === "paused") return "Het spel is gepauzeerd door de organisatie.";
-  if (event.status === "ended") return "Dit evenement is afgelopen.";
+  if (event.status === "finished") return "Dit evenement is afgelopen.";
   if (projectClock(event, now).remainingMs <= 0) {
     return "De speeltijd zit erop. Nieuwe stations leveren geen punten meer op.";
   }

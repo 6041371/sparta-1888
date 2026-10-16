@@ -3,7 +3,9 @@ import { toTeamSnapshot } from "@/lib/server/dto";
 import { fail, json, readToken } from "@/lib/server/http";
 import { publicPuzzle } from "@/lib/server/puzzles";
 import {
+  enterRoom,
   enterStation,
+  markBriefing,
   store,
   submitCode,
   submitFinale,
@@ -16,6 +18,39 @@ import type { ReactionRound } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+
+function stationPayload(event: { rooms: { id: string; name: string }[] }, entered: ReturnType<typeof enterStation>) {
+  const station = entered.station;
+  return {
+    playable: entered.playable,
+    blockReason: entered.blockReason,
+    photoPrompt: entered.photoPrompt,
+    hintUsed: entered.hintUsed,
+    locationLabel: entered.locationLabel,
+    completion: entered.completion
+      ? {
+          points: entered.completion.points,
+          breakdown: entered.completion.breakdown,
+          photoStatus: entered.completion.photo?.status ?? null,
+          clueTitle: entered.completion.clueTitle,
+          clueText: entered.completion.clueText,
+        }
+      : null,
+    station: {
+      id: station.id,
+      code: station.code,
+      name: station.name,
+      roomId: station.roomId,
+      roomName: event.rooms.find((room) => room.id === station.roomId)?.name ?? "Ruimte",
+      locationLabel: entered.locationLabel,
+      game: station.game,
+      gameTitle: GAME_TITLES[station.game],
+      pointsMax: station.pointsMax,
+      puzzle: station.game === "code" ? publicPuzzle(station.puzzleId) : null,
+      available: true,
+    },
+  };
+}
 
 export async function GET() {
   try {
@@ -34,38 +69,16 @@ export async function POST(request: Request) {
     const token = await readToken("team");
 
     const outcome = await store.mutateTeam(token, (event, team, now) => {
+      if (body.action === "briefing") {
+        markBriefing(team);
+        return { ok: true };
+      }
+      if (body.action === "enter-room") {
+        const entered = enterRoom(event, team, String(body.roomId ?? ""), now);
+        return stationPayload(event, entered);
+      }
       if (body.action === "enter") {
-        const entered = enterStation(event, team, String(body.code ?? ""), now);
-        const station = entered.station;
-        return {
-          playable: entered.playable,
-          blockReason: entered.blockReason,
-          photoPrompt: entered.photoPrompt,
-          hintUsed: entered.hintUsed,
-          locationLabel: entered.locationLabel,
-          completion: entered.completion
-            ? {
-                points: entered.completion.points,
-                breakdown: entered.completion.breakdown,
-                photoStatus: entered.completion.photo?.status ?? null,
-                clueTitle: entered.completion.clueTitle,
-                clueText: entered.completion.clueText,
-              }
-            : null,
-          station: {
-            id: station.id,
-            code: station.code,
-            name: station.name,
-            roomId: station.roomId,
-            roomName: event.rooms.find((room) => room.id === station.roomId)?.name ?? "Ruimte",
-            locationLabel: entered.locationLabel,
-            game: station.game,
-            gameTitle: GAME_TITLES[station.game],
-            pointsMax: station.pointsMax,
-            puzzle: station.game === "code" ? publicPuzzle(station.puzzleId) : null,
-            available: true,
-          },
-        };
+        return stationPayload(event, enterStation(event, team, String(body.code ?? ""), now));
       }
       if (body.action === "reaction") {
         return submitReaction(event, team, String(body.code ?? ""), (body.rounds as ReactionRound[]) ?? [], now);
@@ -86,7 +99,9 @@ export async function POST(request: Request) {
       if (body.action === "code") return submitCode(event, team, String(body.code ?? ""), body.answer, now);
       if (body.action === "hint") return takeHint(event, team, String(body.code ?? ""), now);
       if (body.action === "photo") return submitPhoto(event, team, String(body.code ?? ""), body.dataUrl, now);
-      if (body.action === "finale") return submitFinale(event, team, body.answer, now);
+      if (body.action === "finale") {
+        return submitFinale(event, team, body.answer, now, { suspectId: body.suspectId, explanation: body.explanation });
+      }
       throw new Error("Onbekende spelactie.");
     });
 
