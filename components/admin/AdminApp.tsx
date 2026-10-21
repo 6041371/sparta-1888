@@ -441,10 +441,10 @@ function StationEditor({
         <label className="field">
           <span>Puzzel</span>
           <select value={draft.puzzleId ?? "verdubbeling"} onChange={(input) => setDraft({ ...draft, puzzleId: input.target.value })}>
-            <option value="verdubbeling">De verdubbeling</option>
-            <option value="kasteel">Letters van het Kasteel</option>
-            <option value="dambord">Rood en wit</option>
-            <option value="optelsom">De drieluik</option>
+            <option value="verdubbeling">Het scorebord</option>
+            <option value="kasteel">Verschoven letters</option>
+            <option value="dambord">Doelpunt of kaart</option>
+            <option value="optelsom">De vierde treffer</option>
           </select>
         </label>
       ) : null}

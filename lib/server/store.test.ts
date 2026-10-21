@@ -94,9 +94,9 @@ describe("opslag van een spelevenement", () => {
     const hintedAgain = await store.mutateTeam(login.token, (event, team, now) => takeHint(event, team, station!.code, now));
     expect(hinted.costCharged).toBe(15);
     expect(hintedAgain.costCharged).toBe(0);
-    expect(hinted.hint).toMatch(/dubbele/i);
+    expect(hinted.hint).toMatch(/twee vorige/i);
 
-    const right = await store.mutateTeam(login.token, (event, team, now) => submitCode(event, team, station!.code, "64", now));
+    const right = await store.mutateTeam(login.token, (event, team, now) => submitCode(event, team, station!.code, "31", now));
     expect(right.correct).toBe(true);
     expect(right.awarded).toBe(100);
     const state = await store.teamContext(login.token, t0 + 50);

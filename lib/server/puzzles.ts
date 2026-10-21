@@ -13,37 +13,36 @@ export interface Puzzle {
 export const PUZZLES: Puzzle[] = [
   {
     id: "verdubbeling",
-    title: "De verdubbeling",
-    prompt: "Welk getal maakt deze reeks af?\n\n4 — 8 — 16 — 32 — ?",
+    title: "Het scorebord",
+    prompt: "Dit scorebord verdubbelt niet. Elk getal is de som van de twee getallen ervoor.\n\n2 — 5 — 7 — 12 — 19 — ?",
     inputLabel: "Jullie getal",
-    answer: "64",
-    hint: "Elk getal is precies het dubbele van het getal ervoor.",
+    answer: "31",
+    hint: "Tel de twee vorige getallen bij elkaar op. 12 en 19 geven het laatste vak.",
   },
   {
     id: "kasteel",
-    title: "Letters van het Kasteel",
-    prompt:
-      "De thuishaven van Sparta staat bekend als Het Kasteel. Hoeveel letters heeft het woord KASTEEL?",
-    inputLabel: "Aantal letters",
-    answer: "7",
-    hint: "Tel de letters van K tot en met L. Het woord ‘Het’ en de spatie tellen niet mee.",
+    title: "Verschoven letters",
+    prompt: "Elke letter is één plaats doorgeschoven in het alfabet. Welk woord stond er eerst?\n\nE P F M Q V O U",
+    inputLabel: "Het woord",
+    answer: "DOELPUNT",
+    hint: "Schuif elke letter één plaats terug. De E vooraan wordt een D.",
   },
   {
     id: "dambord",
-    title: "Rood en wit",
-    prompt: "Het patroon wisselt als een dambord. Welke letter hoort op het vraagteken?\n\nR  W  R  W\nW  R  W  ?",
-    inputLabel: "R of W",
-    answer: "R",
-    hint: "Na wit komt rood. Kijk naar het vak links en het vak erboven.",
+    title: "Doelpunt of kaart",
+    prompt: "Doelpunten en gele kaarten staan om en om. Eerst een doelpunt, dan een kaart.\n\n8 — 3 — 11 — 6 — 14 — 9 — 17 — ?",
+    inputLabel: "Het laatste getal",
+    answer: "12",
+    hint: "De doelpunten zijn 8, 11, 14 en 17. De kaarten zijn 3, 6 en 9. Beide reeksen stijgen met 3.",
   },
   {
     id: "optelsom",
-    title: "De drieluik",
+    title: "De vierde treffer",
     prompt:
-      "Een aanval levert 2 doelpunten op, de volgende aanval het dubbele daarvan, en de laatste aanval nog 1. Hoeveel doelpunten is dat samen?",
-    inputLabel: "Aantal doelpunten",
-    answer: "7",
-    hint: "Reken eerst 2, daarna het dubbele van 2, en tel er 1 bij op.",
+      "Drie doelpunten vielen in minuut 12, 27 en 44. Het vierde viel even ver na het derde als het tweede na het eerste. In welke minuut viel het vierde doelpunt?",
+    inputLabel: "De minuut",
+    answer: "59",
+    hint: "Tussen minuut 12 en 27 zitten 15 minuten. Tel die sprong op bij minuut 44.",
   },
 ];
 
@@ -68,6 +67,6 @@ export function codeFeedback(answer: string, expected: string): string {
   if (!given) return "Vul een antwoord in.";
   if (given === target) return "Goed opgelost.";
   if (/^\d+$/.test(target) && !/^\d+$/.test(given)) return "Dit antwoord bestaat uit cijfers.";
-  if (/^[RW]$/.test(target) && !/^[RW]$/.test(given)) return "Vul één letter in: R of W.";
+  if (/^[A-Z]+$/.test(target) && !/^[A-Z]+$/.test(given)) return "Dit antwoord is een woord, zonder cijfers.";
   return "Dat klopt nog niet. Bespreek het patroon nog een keer met je team.";
 }
