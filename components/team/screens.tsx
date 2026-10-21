@@ -4,73 +4,79 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { MISSION, RULES, SUSPECTS } from "@/lib/copy";
 import { scanTarget } from "@/lib/game/logic";
+import type { PublicEvidence, PublicLocation } from "@/lib/types";
 import { useTeam } from "@/components/team/TeamShell";
 import { Banner, Button } from "@/components/ui";
 import { useRouter } from "next/navigation";
+
+const STADIUM_SPOTS: Record<string, { top: string; left: string }> = {
+  kasteel: { top: "12%", left: "50%" },
+  bestuurskamer: { top: "23%", left: "30%" },
+  perskamer: { top: "23%", left: "70%" },
+  tribune: { top: "40%", left: "12%" },
+  museum: { top: "33%", left: "91%" },
+  deelderzaal: { top: "68%", left: "14%" },
+  veld: { top: "74%", left: "88%" },
+  kleedkamer: { top: "91%", left: "50%" },
+};
+
+function roomDone(location: PublicLocation) {
+  return location.id === "veld" ? location.questionCount > 0 && location.solvedCount === location.questionCount : location.complete;
+}
+
+function roomHref(location: PublicLocation) {
+  if (location.id === "veld") return "/spel/veld";
+  return location.visited ? `/spel/locatie/${location.id}` : "/spel/scan";
+}
+
+function StadiumMap({ locations, evidence }: { locations: PublicLocation[]; evidence: PublicEvidence[] }) {
+  const open = locations.filter((location) => location.available && STADIUM_SPOTS[location.id]);
+  return (
+    <div className="stadium">
+      <img src="/stadion.png" alt="Stadion Het Kasteel" />
+      {open.map((location) => {
+        const spot = STADIUM_SPOTS[location.id];
+        const done = roomDone(location);
+        const found = evidence.filter((item) => item.found && location.evidenceIds.includes(item.id)).length;
+        const label = location.id === "veld" ? "Veld" : location.visited ? (done ? "Klaar" : `${found}/${location.evidenceIds.length}`) : "Scan";
+        return (
+          <Link key={location.id} href={roomHref(location)} className={`stadium-spot ${done ? "done" : ""}`} style={{ top: spot.top, left: spot.left }}>
+            <b>{location.name}</b>
+            <small>{label}</small>
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
 
 export function Dashboard() {
   const { state } = useTeam();
   if (!state) return null;
   const { team, event } = state;
+  const asked = event.locations.filter((item) => item.available).reduce((sum, item) => sum + item.solvedCount, 0);
+  const questions = event.locations.filter((item) => item.available).reduce((sum, item) => sum + item.questionCount, 0);
   return (
     <div className="stack">
       <div>
-        <p className="kicker">Teamdashboard</p>
+        <p className="kicker">Het Kasteel</p>
         <h1 className="display">{team.name}</h1>
       </div>
       <section className="stats">
-        <article className="stat"><b>{team.score}</b><span>punten</span></article>
-        <article className="stat"><b>{team.rank}</b><span>van {team.teamCount}</span></article>
-        <article className="stat"><b>{event.locations.filter((item) => item.available).reduce((sum, item) => sum + item.solvedCount, 0)}/{event.locations.filter((item) => item.available).reduce((sum, item) => sum + item.questionCount, 0)}</b><span>vragen</span></article>
+        <article className="stat"><b>{asked}/{questions}</b><span>vragen</span></article>
         <article className="stat"><b>{event.evidenceCollected}/{event.evidenceTotal}</b><span>bewijzen</span></article>
       </section>
       <article className="paper dark stack">
-        <p className="small">Hints over: {team.hintsLeft}. Een hint kost {team.hintCost} punten.</p>
-        <Link className="btn primary full" href={event.finaleOpen ? "/spel/finale" : "/spel/kaart"}>
-          {event.finaleOpen ? "Naar de finale" : "Speel verder"}
-        </Link>
-        {!event.finaleOpen ? <p className="small">De finale opent bij 7 van de 7 bewijsstukken, of in de laatste 20 minuten.</p> : null}
+        <p className="small">Hints over: {team.hintsLeft}.</p>
+        {event.finaleOpen ? <Link className="btn primary full" href="/spel/finale">Naar de finale</Link> : <p className="small" style={{ margin: 0 }}>Tik een kamer aan en scan daar de QR-code. De finale opent bij 7 van de 7 bewijsstukken, of in de laatste 20 minuten.</p>}
       </article>
-      <div className="stack">
-        {event.locations.filter((location) => location.available).map((location) => {
-          const done = location.id === "veld" ? location.questionCount > 0 && location.solvedCount === location.questionCount : location.complete;
-          const href = location.id === "veld" ? "/spel/veld" : location.visited ? `/spel/locatie/${location.id}` : "/spel/scan";
-          const found = event.evidence.filter((item) => item.found && location.evidenceIds.includes(item.id)).length;
-          return (
-            <Link key={location.id} href={href} className="paper spread">
-              <div>
-                <b>{location.name}</b>
-                <p className="small" style={{ margin: 0 }}>
-                  {location.id === "veld"
-                    ? `${location.solvedCount} van ${location.questionCount} vragen`
-                    : location.visited
-                      ? `${location.closedCount} van ${location.questionCount} vragen · ${found} van ${location.evidenceIds.length} bewijs`
-                      : "Nog niet gescand"}
-                </p>
-              </div>
-              <span className="stamp">{done ? "Klaar" : location.visited || location.id === "veld" ? "Open" : "Scan"}</span>
-            </Link>
-          );
-        })}
-        {event.locations.filter((location) => location.available && location.id !== "veld").length === 0 ? (
-          <Banner tone="warn">Er is vandaag geen kamer open. Vraag de instructeur om minstens één ruimte te openen.</Banner>
-        ) : null}
-      </div>
-      {team.ledger.length ? (
-        <article className="paper stack">
-          <h2 className="display">Punten</h2>
-          {team.ledger.map((line, index) => (
-            <div key={`${line.label}-${index}`} className="spread">
-              <span>{line.label}</span>
-              <b>{line.points > 0 ? `+${line.points}` : line.points}</b>
-            </div>
-          ))}
-        </article>
+      {event.locations.filter((location) => location.available && location.id !== "veld").length === 0 ? (
+        <Banner tone="warn">Er is vandaag geen kamer open. Vraag de instructeur om minstens één ruimte te openen.</Banner>
       ) : null}
+      <StadiumMap locations={event.locations} evidence={event.evidence} />
       <div className="row">
         <Link className="btn ghost" href="/spel/missie">Missie</Link>
         <Link className="btn ghost" href="/spel/regels">Spelregels</Link>
-        <Link className="btn ghost" href="/spel/uitslag">Uitslag</Link>
       </div>
     </div>
   );
@@ -114,31 +120,12 @@ export function StationMap() {
       <div>
         <p className="kicker">Het Kasteel</p>
         <h1 className="display">Kies je route</h1>
-        <p className="muted">Open een kamer met de QR-code ter plekke. Het Veld heeft geen QR-code. Minder open kamers betekent meer bewijsstukken per kamer.</p>
+        <p className="muted">Tik een kamer aan en scan de QR-code ter plekke. Het Veld heeft geen QR-code. Minder open kamers betekent meer bewijsstukken per kamer.</p>
       </div>
       {state.event.locations.filter((location) => location.available && location.id !== "veld").length === 0 ? (
         <Banner tone="warn">Er is vandaag geen kamer open. Het spel kan pas starten als de instructeur minstens één ruimte openzet.</Banner>
       ) : null}
-      <div className="map">
-        {state.event.locations.filter((location) => location.available).map((location) => {
-          const done = location.id === "veld" ? location.questionCount > 0 && location.solvedCount === location.questionCount : location.complete;
-          const href = location.id === "veld" ? "/spel/veld" : location.visited ? `/spel/locatie/${location.id}` : "/spel/scan";
-          const found = state.event.evidence.filter((item) => item.found && location.evidenceIds.includes(item.id)).length;
-          return (
-            <Link key={location.id} href={href} className={`zone ${done ? "done" : ""}`}>
-              <span>
-                <b>{location.name}</b>
-                <small>
-                  {location.id === "veld"
-                    ? `${location.solvedCount}/${location.questionCount} vragen`
-                    : `${found}/${location.evidenceIds.length} bewijs`}
-                </small>
-              </span>
-              <strong>{location.id === "veld" ? (done ? "Klaar" : "Open") : location.visited ? (done ? "Klaar" : "Verder") : "Scan"}</strong>
-            </Link>
-          );
-        })}
-      </div>
+      <StadiumMap locations={state.event.locations} evidence={state.event.evidence} />
     </div>
   );
 }
@@ -178,22 +165,11 @@ export function ClueBook() {
 }
 
 export function Board() {
-  const { state } = useTeam();
-  if (!state) return null;
   return (
     <div className="stack">
-      <h1 className="display">Klassement</h1>
-      <p className="small muted">De stand ververst automatisch, ongeveer elke 8 seconden.</p>
-      {state.leaderboard.map((row) => (
-        <article key={row.teamId} className={`paper rank ${row.teamId === state.team.id ? "ticket" : ""}`}>
-          <div className="pos">{row.position}</div>
-          <div>
-            <b>{row.name}</b>
-            <p className="small" style={{ margin: 0 }}>{row.completedCount} vragen · finale {row.finaleStatus}</p>
-          </div>
-          <strong>{row.score}</strong>
-        </article>
-      ))}
+      <h1 className="display">De stand</h1>
+      <p>De stand is alleen zichtbaar voor de instructeur die de groep heeft aangemaakt.</p>
+      <Link className="btn primary" href="/spel">Terug naar het stadion</Link>
     </div>
   );
 }
@@ -266,7 +242,7 @@ export function FinaleScreen() {
           <Button full disabled={busy || !suspectId || explanation.trim().length < 20} onClick={() => void submit("finale")}>Dien de verklaring in</Button>
           {state.event.finaleHintAvailable ? (
             <Button full kind="warn" disabled={busy || (state.team.hintsLeft <= 0 && !state.team.hintsUsedKeys.includes("finale"))} onClick={() => void submit("hint")}>
-              {state.team.hintsUsedKeys.includes("finale") ? "Toon aanwijzing" : `Extra aanwijzing (−${state.team.hintCost})`}
+              {state.team.hintsUsedKeys.includes("finale") ? "Toon aanwijzing" : "Extra aanwijzing"}
             </Button>
           ) : null}
         </>
@@ -285,18 +261,8 @@ export function ResultScreen() {
   if (!state) return null;
   return (
     <div className="stack">
-      <p className="kicker">Einduitslag</p>
-      <h1 className="display">{state.team.finaleSolved ? "Code gekraakt" : "Jullie stand"}</h1>
-      <article className="paper stack">
-        <h2 className="display">{state.team.score} punten</h2>
-        <p>Plek {state.team.rank} van {state.team.teamCount}.</p>
-        {state.team.ledger.map((line, index) => (
-          <div key={`${line.label}-${index}`} className="spread">
-            <span>{line.label}</span>
-            <b>{line.points > 0 ? `+${line.points}` : line.points}</b>
-          </div>
-        ))}
-      </article>
+      <p className="kicker">Afronding</p>
+      <h1 className="display">{state.team.finaleSolved ? "Code gekraakt" : "Jullie ronde"}</h1>
       {state.team.secretVisible && state.event.secretText ? (
         <article className="paper stack">
           <span className="stamp">Het geheim</span>

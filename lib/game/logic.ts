@@ -374,7 +374,7 @@ export function playBlockReason(event: ClockInput, now: number): string | null {
   if (event.status === "paused") return "Het spel is gepauzeerd door de organisatie.";
   if (event.status === "finished") return "Dit evenement is afgelopen.";
   if (projectClock(event, now).remainingMs <= 0) {
-    return "De speeltijd zit erop. Nieuwe stations leveren geen punten meer op.";
+    return "De speeltijd zit erop. Nieuwe stations kun je niet meer afronden.";
   }
   return null;
 }

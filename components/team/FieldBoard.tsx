@@ -33,8 +33,8 @@ export function FieldBoard() {
         <p className="kicker">Het Veld</p>
         <h1 className="display">Beste Sparta-elftal ooit</h1>
         <article className="paper stack">
-          <p className="serif">Volgens de statistieken is dit het sterkste elftal dat je uit Sparta-spelers kunt zetten. De namen staan op hun plek. Spelers verschijnen op jullie veld zodra een kamer is afgerond. Bij minder open kamers komen er meer spelers tegelijk vrij.</p>
-          <img src="/veld-elftal.jpg" alt="Opstelling met het beste Sparta-elftal, inclusief reserves" style={{ width: "100%", borderRadius: 16 }} />
+          <p className="serif">Volgens de statistieken is dit het sterkste elftal dat je uit Sparta-spelers kunt zetten. De shirts komen op hun plek zodra een kamer is afgerond. Bij minder open kamers komen er meer spelers tegelijk vrij.</p>
+          <img src="/opstelling.jpg" alt="Opstelling met het beste Sparta-elftal, inclusief reserves" style={{ width: "100%", borderRadius: 16 }} />
           <Button full disabled={busy} onClick={() => void seen()}>Naar het veld</Button>
         </article>
       </div>
@@ -73,8 +73,9 @@ export function FieldBoard() {
       <div className="pitch">
         <img src="/veld-leeg.png" alt="" />
         {state.event.fieldPlayers.filter((item) => item.unlocked).map((item) => (
-          <button key={item.questionId} type="button" className={`pitch-player ${item.keeper ? "keeper" : ""} ${item.solved ? "done" : ""}`} style={{ top: item.top, left: item.left }} onClick={() => { setPlayer(item); setPick(""); setText(""); setNote(null); }}>
-            {item.name}
+          <button key={item.questionId} type="button" className={`pitch-player ${item.solved ? "done" : ""}`} style={{ top: item.top, left: item.left }} onClick={() => { setPlayer(item); setPick(""); setText(""); setNote(null); }}>
+            <img src={item.image} alt="" />
+            <span>{item.name}</span>
           </button>
         ))}
       </div>

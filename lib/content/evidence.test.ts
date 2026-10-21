@@ -5,6 +5,7 @@ import {
   distributeEvidence,
   evidenceProgress,
   finaleByEvidence,
+  grantByCompletion,
 } from "@/lib/content/evidence";
 
 function rooms(ids: string[]) {
@@ -80,5 +81,61 @@ describe("bewijsverdeling", () => {
     const kept = collectRoomEvidence("museum", moved, collected);
     expect(collected.every((id) => kept.collectedEvidenceIds.includes(id))).toBe(true);
     expect(new Set([...kept.collectedEvidenceIds, ...Object.values(moved).flat()]).size).toBe(7);
+  });
+
+  it("geeft het eerste bewijsstuk aan de kamer die het eerst af is, niet aan kamer 2", () => {
+    const rooms = ["bestuurskamer", "perskamer", "tribune", "museum", "kasteel", "kleedkamer", "deelderzaal"];
+    const assignments = distributeEvidence(EVIDENCE_ITEMS, rooms);
+    expect(assignments.perskamer).toEqual(["security_camera"]);
+    const first = grantByCompletion({
+      assignments,
+      readyRoomIds: ["perskamer"],
+      completedAt: { perskamer: 20 },
+      collectedEvidenceIds: [],
+      grants: {},
+    });
+    expect(first.grants.perskamer).toEqual(["polaroid_1"]);
+    expect(first.collectedEvidenceIds).toEqual(["polaroid_1"]);
+    const second = grantByCompletion({
+      assignments,
+      readyRoomIds: ["perskamer", "bestuurskamer"],
+      completedAt: { perskamer: 20, bestuurskamer: 40 },
+      collectedEvidenceIds: first.collectedEvidenceIds,
+      grants: first.grants,
+    });
+    expect(second.grants.bestuurskamer).toEqual(["security_camera"]);
+    expect(second.collectedEvidenceIds).toEqual(["polaroid_1", "security_camera"]);
+    const again = grantByCompletion({
+      assignments,
+      readyRoomIds: ["perskamer", "bestuurskamer"],
+      completedAt: { perskamer: 20, bestuurskamer: 40 },
+      collectedEvidenceIds: second.collectedEvidenceIds,
+      grants: second.grants,
+    });
+    expect(again).toEqual(second);
+  });
+
+  it("laat al uitgereikt bewijs staan en slaat die nummers daarna over", () => {
+    const rooms = ["bestuurskamer", "perskamer"];
+    const assignments = distributeEvidence(EVIDENCE_ITEMS, rooms);
+    const locked = grantByCompletion({
+      assignments,
+      readyRoomIds: ["perskamer"],
+      completedAt: { perskamer: 10 },
+      collectedEvidenceIds: assignments.perskamer,
+      grants: {},
+    });
+    expect(locked.grants.perskamer).toEqual(assignments.perskamer);
+    expect(locked.collectedEvidenceIds).toEqual(assignments.perskamer);
+    const next = grantByCompletion({
+      assignments,
+      readyRoomIds: ["perskamer", "bestuurskamer"],
+      completedAt: { perskamer: 10, bestuurskamer: 30 },
+      collectedEvidenceIds: locked.collectedEvidenceIds,
+      grants: locked.grants,
+    });
+    expect(next.grants.bestuurskamer?.[0]).toBe("polaroid_1");
+    expect(next.collectedEvidenceIds).toContain("polaroid_1");
+    for (const id of assignments.perskamer) expect(next.collectedEvidenceIds.filter((item) => item === id)).toHaveLength(1);
   });
 });

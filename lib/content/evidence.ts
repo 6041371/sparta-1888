@@ -80,6 +80,55 @@ export function distributeEvidence(evidenceItems: EvidenceItem[], roomIds: strin
   return assignments;
 }
 
+export function grantByCompletion(input: {
+  assignments: Record<string, string[]>;
+  readyRoomIds: string[];
+  completedAt: Record<string, number>;
+  collectedEvidenceIds: string[];
+  grants: Record<string, string[]>;
+}): { collectedEvidenceIds: string[]; grants: Record<string, string[]> } {
+  const grants: Record<string, string[]> = {};
+  for (const [roomId, ids] of Object.entries(input.grants)) grants[roomId] = [...ids];
+  const collected = new Set(input.collectedEvidenceIds.filter((id) => EVIDENCE_IDS.has(id)));
+  const claimed = new Set<string>();
+  const ready = input.readyRoomIds.filter((roomId) => Object.prototype.hasOwnProperty.call(input.assignments, roomId));
+
+  for (const roomId of ready) {
+    for (const id of grants[roomId] ?? []) {
+      if (!EVIDENCE_IDS.has(id)) continue;
+      collected.add(id);
+      claimed.add(id);
+    }
+  }
+
+  for (const roomId of ready) {
+    if (grants[roomId]) continue;
+    const planned = (input.assignments[roomId] ?? []).filter((id) => EVIDENCE_IDS.has(id));
+    if (planned.length > 0 && planned.every((id) => collected.has(id) && !claimed.has(id))) {
+      grants[roomId] = planned;
+      for (const id of planned) claimed.add(id);
+    }
+  }
+
+  const pending = ready
+    .filter((roomId) => !grants[roomId])
+    .sort((a, b) => (input.completedAt[a] ?? 0) - (input.completedAt[b] ?? 0) || a.localeCompare(b));
+  const ordered = [...EVIDENCE_ITEMS].sort((a, b) => a.order - b.order);
+  for (const roomId of pending) {
+    const count = (input.assignments[roomId] ?? []).length;
+    const next: string[] = [];
+    for (const item of ordered) {
+      if (next.length >= count) break;
+      if (collected.has(item.id)) continue;
+      collected.add(item.id);
+      next.push(item.id);
+    }
+    grants[roomId] = next;
+  }
+
+  return { collectedEvidenceIds: [...collected], grants };
+}
+
 export function collectRoomEvidence(roomId: string, assignments: Record<string, string[]>, collectedEvidenceIds: string[]) {
   const collected = new Set(collectedEvidenceIds.filter((id) => EVIDENCE_IDS.has(id)));
   const newlyCollected: string[] = [];

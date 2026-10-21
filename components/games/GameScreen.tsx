@@ -101,7 +101,7 @@ export function GameScreen({ code }: { code: string }) {
       <div>
         <p className="kicker">{entered.locationLabel}</p>
         <h1 className="display">{entered.station.name}</h1>
-        <p className="muted">{entered.station.gameTitle} · maximaal {entered.station.pointsMax} punten</p>
+        <p className="muted">{entered.station.gameTitle}</p>
       </div>
       {error ? <Banner tone="danger">{error}</Banner> : null}
       {hint ? <Banner tone="paper">{hint}</Banner> : null}
@@ -109,7 +109,7 @@ export function GameScreen({ code }: { code: string }) {
       {done ? (
         <article className="paper stack">
           <span className="stamp">{entered.completion?.photoStatus === "pending" ? "Ingestuurd" : "Voltooid"}</span>
-          <h2 className="display">{entered.completion?.points} punten</h2>
+          <h2 className="display">Gelukt</h2>
           <p>{entered.completion?.breakdown}</p>
           {entered.completion?.photoStatus === "pending" ? (
             <p>De organisatie beoordeelt de foto nog. De aanwijzing is al van jullie.</p>
@@ -121,7 +121,7 @@ export function GameScreen({ code }: { code: string }) {
               <p className="serif">{entered.completion.clueText}</p>
             </div>
           ) : null}
-          <p className="small">Opnieuw spelen levert geen extra punten op. Het bewijs staat in de zaakmap.</p>
+          <p className="small">Opnieuw spelen opent geen nieuw bewijs. Het bewijs staat in de zaakmap.</p>
           {entered.station.game !== "photo" && entered.station.game !== "code" ? (
             <Button kind="dark" onClick={() => setPractice(true)}>
               Oefen nog een keer
@@ -156,7 +156,7 @@ export function GameScreen({ code }: { code: string }) {
       ) : null}
       {outcome && !done ? (
         <article className="paper stack">
-          <h2 className="display">{outcome.alreadyCompleted ? "Geen extra punten" : `+${outcome.awarded ?? 0} punten`}</h2>
+          <h2 className="display">{outcome.alreadyCompleted ? "Al afgerond" : "Gelukt"}</h2>
           {outcome.breakdown ? <p>{outcome.breakdown}</p> : null}
           {outcome.pending ? <p>De foto staat klaar voor de organisatie. Jullie aanwijzing is open.</p> : null}
           {outcome.clue ? (

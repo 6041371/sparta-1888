@@ -286,4 +286,46 @@ describe("opslag van een spelevenement", () => {
     for (const item of EVIDENCE_ITEMS) expect(moved.team.collectedEvidenceIds).toContain(item.id);
     expect(new Set(moved.team.collectedEvidenceIds).size).toBe(7);
   });
+
+  it("geeft bewijsstuk 1 aan de tweede kamer als die als eerste af is", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "sparta-volgorde-"));
+    const store = createStore(path.join(dir, "store.json"));
+    const now = Date.now();
+    const rooms = ["bestuurskamer", "perskamer", "tribune", "museum", "kasteel", "kleedkamer", "deelderzaal"];
+    const created = await store.createEvent({
+      name: "Volgorde",
+      accessCode: "volgorde-1888",
+      teamCount: 1,
+      roomIds: rooms,
+      now,
+    });
+    await store.mutateOrganizer(created.token, (event, at) => setStatus(event, "start", undefined, at), now + 1);
+    const login = await store.loginTeam(created.event.teams[0].joinCode, now + 2);
+    await store.mutateTeam(login.token, (event, team) => {
+      for (const question of questionsFor("perskamer")) {
+        team.answers.push({ questionId: question.id, correct: true, points: 0, at: now + 3, response: "x" });
+      }
+      const station = event.stations.find((item) => item.roomId === "perskamer" && item.enabled);
+      if (!station) throw new Error("minigame ontbreekt");
+      team.completions.push({
+        stationId: station.id,
+        game: station.game,
+        points: 10,
+        completedAt: now + 4,
+        breakdown: "test",
+        clueTitle: "",
+        clueText: "",
+        photo: null,
+      });
+    }, now + 5);
+    const done = await store.teamContext(login.token, now + 6);
+    expect(done.event.evidenceAssignments.perskamer).toEqual(["security_camera"]);
+    expect(done.team.evidenceGrants?.perskamer).toEqual(["polaroid_1"]);
+    expect(done.team.collectedEvidenceIds).toEqual(["polaroid_1"]);
+    const snapshot = toTeamSnapshot(done.event, done.team, now + 7);
+    expect(snapshot.event.locations.find((location) => location.id === "perskamer")?.evidenceIds).toEqual(["polaroid_1"]);
+    expect(snapshot.event.evidence.find((item) => item.id === "polaroid_1")?.found).toBe(true);
+    expect(snapshot.event.evidence.find((item) => item.id === "security_camera")?.found).toBe(false);
+    expect(snapshot.leaderboard).toEqual([]);
+  });
 });

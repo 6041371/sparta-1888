@@ -69,6 +69,11 @@ function publicStation(event: GameEvent, station: GameEvent["stations"][number],
   };
 }
 
+function grantedEvidenceIds(granted: string[] | undefined, slots: string[]): string[] {
+  if (granted) return granted;
+  return slots.map((_, index) => `pending-${index}`);
+}
+
 export function toTeamSnapshot(event: GameEvent, team: Team, now: number): TeamSnapshot {
   const clock = projectClock(event, now);
   const board = rankTeams(event.teams, event.tiebreaker, event.finaleOpen);
@@ -106,7 +111,7 @@ export function toTeamSnapshot(event: GameEvent, team: Team, now: number): TeamS
       minigameSummary: station ? GAME_SUMMARIES[station.game] : null,
       minigameDone,
       minigameCode: station && (field || visited.includes(location.id)) ? station.code : null,
-      evidenceIds: assignments[location.id] ?? [],
+      evidenceIds: grantedEvidenceIds(current.evidenceGrants?.[location.id], assignments[location.id] ?? []),
     };
   });
   const unlockedPlayers = new Set(
@@ -128,7 +133,7 @@ export function toTeamSnapshot(event: GameEvent, team: Team, now: number): TeamS
   return {
     role: "team",
     serverNow: now,
-    leaderboard: board,
+    leaderboard: [],
     team: {
       id: current.id,
       name: current.name,

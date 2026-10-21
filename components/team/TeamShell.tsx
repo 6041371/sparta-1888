@@ -24,7 +24,6 @@ const LINKS = [
   ["/spel/scan", "Scan"],
   ["/spel/veld", "Veld"],
   ["/spel/aanwijzingen", "Zaak"],
-  ["/spel/klassement", "Stand"],
 ];
 
 export function TeamShell({ children }: { children: React.ReactNode }) {
@@ -107,7 +106,7 @@ export function TeamShell({ children }: { children: React.ReactNode }) {
         {state.event.status === "active" && level === "15" ? <div className="banner" style={{ marginBottom: 12 }}>Nog minder dan 15 minuten.</div> : null}
         {state.event.status === "active" && level === "5" ? <div className="banner danger" style={{ marginBottom: 12 }}>Nog minder dan 5 minuten.</div> : null}
         {state.event.status === "active" && level === "1" ? <div className="banner danger" style={{ marginBottom: 12 }}>Laatste minuut. Rond af waar je bent.</div> : null}
-        {state.event.status === "active" && level === "done" ? <div className="banner danger" style={{ marginBottom: 12 }}>De speeltijd is voorbij. Nieuwe ruimtes leveren geen punten meer op.</div> : null}
+        {state.event.status === "active" && level === "done" ? <div className="banner danger" style={{ marginBottom: 12 }}>De speeltijd is voorbij. Nieuwe ruimtes kun je niet meer afronden.</div> : null}
         {children}
       </main>
       <nav className="nav">

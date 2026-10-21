@@ -49,7 +49,7 @@ export function CrackTheCode({
           <p>
             {hintUsed
               ? "Jullie hebben deze hint al. Opnieuw tonen kost niets."
-              : `Deze hint kost ${hintCost} punten. Daarna hebben jullie nog ${Math.max(0, hintsLeft - 1)} hints over.`}
+              : `Deze hint gebruikt één van jullie hints. Daarna hebben jullie er nog ${Math.max(0, hintsLeft - 1)} over.`}
           </p>
           <Button full kind="dark" disabled={busy || (!hintUsed && hintsLeft <= 0)} onClick={() => onHint()}>
             {hintUsed ? "Toon de hint" : "Ja, gebruik de hint"}
@@ -60,7 +60,7 @@ export function CrackTheCode({
         </div>
       ) : (
         <Button full kind="warn" disabled={busy || (!hintUsed && hintsLeft <= 0)} onClick={() => setConfirmHint(true)}>
-          {hintUsed ? "Hint bekijken" : `Hint vragen (−${hintCost})`}
+          {hintUsed ? "Hint bekijken" : "Hint vragen"}
         </Button>
       )}
     </div>

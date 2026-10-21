@@ -96,7 +96,7 @@ export function MemoryVault({
         <div className="paper stack">
           <p className="kicker">Memory Vault</p>
           <h2 className="display">Onthoud de paren</h2>
-          <p>Draai twee kaarten om. Een paar blijft liggen. Een misser draait terug. Minder pogingen en minder tijd leveren meer punten op.</p>
+          <p>Draai twee kaarten om. Een paar blijft liggen. Een misser draait terug.</p>
         </div>
         <Button
           full

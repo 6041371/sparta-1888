@@ -9,7 +9,7 @@ export const GAME_SUMMARIES = {
   reaction: "Tik alleen op het Sparta-schild. Snelheid en nauwkeurigheid tellen allebei.",
   memory: "Draai paren kaarten om en onthoud waar ze liggen.",
   code: "Los de puzzel op. Het antwoord wordt op de server gecontroleerd.",
-  photo: "Maak samen een foto. De organisatie kent daarna de punten toe.",
+  photo: "Maak samen een foto. De organisatie bekijkt die daarna.",
 } as const;
 
 export const PHOTO_PROMPTS = [
@@ -74,8 +74,8 @@ export const CULPRIT_ID = "bosman";
 export const RULES = [
   "Blijf bij je team en volg de aanwijzingen van de instructeur en de huisregels van het stadion.",
   "Scan de vaste QR-code in een ruimte. Alleen ruimtes die de instructeur heeft opengesteld, zijn vandaag te spelen.",
-  "Een opdracht levert één keer punten op. Opnieuw scannen opent het resultaat, geen tweede score.",
-  "Hints kosten punten. Het bedrag en het aantal hints stelt de instructeur in.",
+  "Een opdracht doe je één keer. Opnieuw scannen opent het resultaat, geen tweede bewijsstuk.",
+  "Hints zijn beperkt. Het aantal stelt de instructeur in.",
   "De klok loopt vanaf de officiële start en is voor elk team dezelfde. Verversen zet de tijd niet terug.",
   "De finale opent als alle zeven bewijsstukken in de zaakmap zitten, of in de laatste twintig minuten.",
   "Overleg binnen je team mag. Andere teams hinderen hoort er niet bij.",

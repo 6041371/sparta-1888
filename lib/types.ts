@@ -97,6 +97,7 @@ export interface Team {
   answers: QuizAnswer[];
   visitedRooms: string[];
   collectedEvidenceIds: string[];
+  evidenceGrants?: Record<string, string[]>;
   fieldSeen: boolean;
   createdAt: number;
 }
@@ -279,6 +280,7 @@ export interface PublicEvidence {
 export interface PublicFieldPlayer {
   questionId: string;
   name: string;
+  image: string;
   top: string;
   left: string;
   keeper: boolean;

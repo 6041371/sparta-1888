@@ -33,7 +33,7 @@ import type {
   Team,
   TieBreaker,
 } from "@/lib/types";
-import { EVIDENCE_ITEMS, collectRoomEvidence, distributeEvidence, finaleUnlocked } from "@/lib/content/evidence";
+import { EVIDENCE_ITEMS, distributeEvidence, finaleUnlocked, grantByCompletion } from "@/lib/content/evidence";
 import { assignPlayers } from "@/lib/content/field";
 import { getQuestion, gradeQuiz, officialAnswer, questionsFor } from "@/lib/content/quiz";
 import { DEFAULT_FINALE, DEFAULT_SCORING, ROOM_CODES, ROOM_TEMPLATES, STATION_TEMPLATES, roomIdForEntryCode } from "@/lib/server/defaults";
@@ -97,6 +97,7 @@ function reviveEvent(event: GameEvent) {
     team.answers = Array.isArray(team.answers) ? team.answers : [];
     team.visitedRooms = Array.isArray(team.visitedRooms) ? team.visitedRooms : [];
     team.collectedEvidenceIds = Array.isArray(team.collectedEvidenceIds) ? team.collectedEvidenceIds : [];
+    team.evidenceGrants = team.evidenceGrants && typeof team.evidenceGrants === "object" && !Array.isArray(team.evidenceGrants) ? team.evidenceGrants : {};
     team.fieldSeen = Boolean(team.fieldSeen);
     team.photoPrompts = team.photoPrompts ?? {};
     const seen = new Set<string>();
@@ -223,6 +224,7 @@ function blankTeam(name: string, joinCode: string, now: number): Team {
     answers: [],
     visitedRooms: [],
     collectedEvidenceIds: [],
+    evidenceGrants: {},
     fieldSeen: false,
     createdAt: now,
   };
@@ -807,7 +809,7 @@ export function enterStation(event: GameEvent, team: Team, code: string, now: nu
     locationLabel: locationLabel(station, event.rooms),
     completion,
     playable: playBlockReason(event, now) === null && !completion,
-    blockReason: completion ? "Dit station is al voltooid. Jullie kunnen oefenen, maar er zijn geen extra punten." : playBlockReason(event, now),
+    blockReason: completion ? "Dit station is al voltooid. Jullie kunnen oefenen." : playBlockReason(event, now),
     photoPrompt: station.game === "photo" ? team.photoPrompts[station.id] : null,
     hintUsed: team.hintsUsed.some((item) => item.key === station.id),
     clock: projectClock(event, now),
@@ -1008,13 +1010,31 @@ function syncEvidence(event: GameEvent, team: Team) {
   grantReadyEvidence(event, team);
 }
 
+function roomCompletedAt(event: GameEvent, team: Team, roomId: string) {
+  const answerAt = questionsFor(roomId).reduce((max, question) => {
+    const answer = team.answers.find((item) => item.questionId === question.id);
+    return Math.max(max, answer?.at ?? 0);
+  }, 0);
+  const station = roomStation(event, roomId);
+  const completion = station ? team.completions.find((item) => item.stationId === station.id) : undefined;
+  return Math.max(answerAt, completion?.completedAt ?? 0);
+}
+
 function grantReadyEvidence(event: GameEvent, team: Team) {
   team.collectedEvidenceIds = team.collectedEvidenceIds ?? [];
-  for (const roomId of Object.keys(event.evidenceAssignments ?? {})) {
-    if (!roomReady(event, team, roomId)) continue;
-    const next = collectRoomEvidence(roomId, event.evidenceAssignments, team.collectedEvidenceIds);
-    team.collectedEvidenceIds = next.collectedEvidenceIds;
-  }
+  team.evidenceGrants = team.evidenceGrants ?? {};
+  const assignments = event.evidenceAssignments ?? {};
+  const readyRoomIds = Object.keys(assignments).filter((roomId) => roomReady(event, team, roomId));
+  const completedAt = Object.fromEntries(readyRoomIds.map((roomId) => [roomId, roomCompletedAt(event, team, roomId)]));
+  const next = grantByCompletion({
+    assignments,
+    readyRoomIds,
+    completedAt,
+    collectedEvidenceIds: team.collectedEvidenceIds,
+    grants: team.evidenceGrants,
+  });
+  team.collectedEvidenceIds = next.collectedEvidenceIds;
+  team.evidenceGrants = next.grants;
 }
 
 function playerUnlocked(event: GameEvent, team: Team, questionId: string) {
