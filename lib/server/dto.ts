@@ -1,4 +1,5 @@
 import { EVIDENCE_ITEMS, evidenceProgress, finaleUnlocked } from "@/lib/content/evidence";
+import { DOSSIER_PUZZLE_ID, dossierUnlocked, requiredEvidenceIds } from "@/lib/content/minigames";
 import { assignPlayers, FIELD_PLAYERS } from "@/lib/content/field";
 import { QUIZ_LOCATIONS, getQuestion, publicQuestion, questionsFor } from "@/lib/content/quiz";
 import { GAME_SUMMARIES, GAME_TITLES } from "@/lib/copy";
@@ -78,7 +79,7 @@ export function toTeamSnapshot(event: GameEvent, team: Team, now: number): TeamS
   const clock = projectClock(event, now);
   const board = rankTeams(event.teams, event.tiebreaker, event.finaleOpen);
   const mine = board.find((row) => row.teamId === team.id);
-  const openStations = visibleStations(event.stations, event.rooms).filter((station) => station.game !== "photo");
+  const openStations = visibleStations(event.stations, event.rooms);
   const secretVisible = team.finaleSolved || event.resultsPublished;
   const current = event.teams.find((item) => item.id === team.id) ?? team;
   current.score = displayScore(current);
@@ -93,7 +94,7 @@ export function toTeamSnapshot(event: GameEvent, team: Team, now: number): TeamS
     const questions = questionsFor(location.id);
     const room = event.rooms.find((item) => item.id === location.id);
     const field = location.id === "veld";
-    const station = event.stations.find((item) => item.roomId === location.id && item.enabled && item.game !== "photo");
+    const station = event.stations.find((item) => item.roomId === location.id && item.enabled);
     const minigameDone = !station || current.completions.some((item) => item.stationId === station.id);
     const closedCount = questions.filter((question) => closedIds.has(question.id)).length;
     const complete = !field && Boolean(room?.available) && questions.length > 0 && closedCount === questions.length && minigameDone;
@@ -196,7 +197,19 @@ export function toTeamSnapshot(event: GameEvent, team: Team, now: number): TeamS
         unlocked: unlockedPlayers.has(player.questionId),
         solved: solvedIds.has(player.questionId),
       })),
+      codeGate: codeGateFor(event, current, found),
     },
+  };
+}
+
+function codeGateFor(event: GameEvent, team: Team, found: Set<string>) {
+  const station = event.stations.find((item) => item.puzzleId === DOSSIER_PUZZLE_ID && item.enabled) ?? null;
+  const requiredIds = requiredEvidenceIds(event.evidenceAssignments ?? {}, station?.roomId ?? null);
+  return {
+    requiredIds,
+    foundIds: requiredIds.filter((id) => found.has(id)),
+    unlocked: dossierUnlocked(requiredIds, [...found]),
+    solved: Boolean(station && team.completions.some((item) => item.stationId === station.id)),
   };
 }
 

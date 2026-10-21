@@ -2,28 +2,27 @@
 
 import { useEffect, useRef, useState } from "react";
 import { MEMORY_PAIRS } from "@/lib/game/logic";
-import { GameSymbol, type SymbolName } from "@/components/games/symbols";
 import { Button } from "@/components/ui";
 
-const PAIRS: { pair: SymbolName; label: string }[] = [
-  { pair: "shield", label: "Schild" },
-  { pair: "ball", label: "Bal" },
-  { pair: "whistle", label: "Fluit" },
-  { pair: "flag", label: "Vlag" },
-  { pair: "boot", label: "Schoen" },
-  { pair: "castle", label: "Kasteel" },
+const PAIRS: { pair: string; faces: [string, string] }[] = [
+  { pair: "tas", faces: ["Grote sporttas", "Donkere jas"] },
+  { pair: "bus", faces: ["Kenteken …B7", "Donkere bestelbus"] },
+  { pair: "bank", faces: ["€450", "Reservering"] },
+  { pair: "brons", faces: ["18 kg", "Bronzen object"] },
+  { pair: "jaar", faces: ["1888", "Oprichtingsjaar"] },
+  { pair: "chat", faces: ["Overdracht", "Veilige plek"] },
 ];
 
 interface Card {
   id: string;
-  pair: SymbolName;
+  pair: string;
   label: string;
 }
 
 function deal(): Card[] {
   const cards = PAIRS.flatMap((item) => [
-    { id: `${item.pair}-a`, ...item },
-    { id: `${item.pair}-b`, ...item },
+    { id: `${item.pair}-a`, pair: item.pair, label: item.faces[0] },
+    { id: `${item.pair}-b`, pair: item.pair, label: item.faces[1] },
   ]);
   for (let index = cards.length - 1; index > 0; index -= 1) {
     const swap = Math.floor(Math.random() * (index + 1));
@@ -42,12 +41,12 @@ export function MemoryVault({
   const [started, setStarted] = useState(false);
   const [cards, setCards] = useState<Card[]>([]);
   const [open, setOpen] = useState<string[]>([]);
-  const [matched, setMatched] = useState<SymbolName[]>([]);
+  const [matched, setMatched] = useState<string[]>([]);
   const [attempts, setAttempts] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const lock = useRef(false);
   const openRef = useRef<string[]>([]);
-  const matchedRef = useRef<SymbolName[]>([]);
+  const matchedRef = useRef<string[]>([]);
   const startedAt = useRef(0);
   const finishRef = useRef(onFinish);
   finishRef.current = onFinish;
@@ -94,9 +93,9 @@ export function MemoryVault({
     return (
       <div className="stack">
         <div className="paper stack">
-          <p className="kicker">Memory Vault</p>
-          <h2 className="display">Onthoud de paren</h2>
-          <p>Draai twee kaarten om. Een paar blijft liggen. Een misser draait terug.</p>
+          <p className="kicker">Geheugenspel</p>
+          <h2 className="display">Zes sporen</h2>
+          <p>Draai twee kaarten om. Een paar dat bij hetzelfde spoor hoort, blijft liggen. Een misser draait terug.</p>
         </div>
         <Button
           full
@@ -130,7 +129,7 @@ export function MemoryVault({
               onClick={() => turn(card)}
               aria-label={shown ? card.label : "Dichte kaart"}
             >
-              {shown ? <GameSymbol name={card.pair} /> : <span className="display">?</span>}
+              {shown ? <span>{card.label}</span> : <span className="display">?</span>}
             </button>
           );
         })}

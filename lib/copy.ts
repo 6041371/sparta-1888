@@ -1,15 +1,21 @@
 export const GAME_TITLES = {
-  reaction: "Schildtest",
+  reaction: "Reactietest",
   memory: "Geheugenspel",
-  code: "Codepuzzel",
+  code: "Crack the Code",
   photo: "Foto-opdracht",
+  penalty: "Penaltyreeks",
+  var: "VAR-check",
+  spot: "Spot de verdachte",
 } as const;
 
 export const GAME_SUMMARIES = {
-  reaction: "Tik alleen op het Sparta-schild. Snelheid en nauwkeurigheid tellen allebei.",
-  memory: "Draai paren kaarten om en onthoud waar ze liggen.",
-  code: "Los de puzzel op. Het antwoord wordt op de server gecontroleerd.",
-  photo: "Maak samen een foto. De organisatie bekijkt die daarna.",
+  reaction: "Wacht op het signaal en tik dan zo snel mogelijk.",
+  memory: "Zoek de paren die bij hetzelfde spoor horen.",
+  code: "Kraak het dossier met de aanwijzingen uit de zaakmap.",
+  photo: "Maak samen een foto bij de opdracht.",
+  penalty: "Neem vijf penalty's. De keeper kiest elke keer een kant.",
+  var: "Bekijk het beeld en kies de juiste beslissing.",
+  spot: "Kies welke verdachte bij het signalement past.",
 } as const;
 
 export const PHOTO_PROMPTS = [

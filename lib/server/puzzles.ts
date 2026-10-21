@@ -1,4 +1,5 @@
 import { normCode } from "@/lib/game/logic";
+import { DOSSIER_CODE, DOSSIER_PUZZLE_ID } from "@/lib/content/minigames";
 import type { PublicPuzzle } from "@/lib/types";
 
 export interface Puzzle {
@@ -11,6 +12,15 @@ export interface Puzzle {
 }
 
 export const PUZZLES: Puzzle[] = [
+  {
+    id: DOSSIER_PUZZLE_ID,
+    title: "Verborgen dossier",
+    prompt:
+      "Vier cijfers, in deze volgorde. Eerst het cijfer op het kenteken. Dan het laatste cijfer van het bedrag. Daarna de laatste twee cijfers van 1888, het jaar op het historische document. Het transportdocument hoort bij dit dossier: controleer dat het over een bronzen sportobject gaat.",
+    inputLabel: "Vier cijfers",
+    answer: DOSSIER_CODE,
+    hint: "Kenteken, daarna het laatste cijfer van het bedrag, en tot slot de laatste twee cijfers van 1888.",
+  },
   {
     id: "verdubbeling",
     title: "Het scorebord",

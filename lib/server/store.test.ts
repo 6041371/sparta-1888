@@ -7,7 +7,7 @@ import { questionsFor } from "@/lib/content/quiz";
 import { toTeamSnapshot } from "@/lib/server/dto";
 import { DEFAULT_ANSWER } from "@/lib/server/defaults";
 import { PUZZLES } from "@/lib/server/puzzles";
-import { createStore, enterRoom, setStatus, submitCode, submitFinale, submitQuiz, submitReaction, takeHint } from "@/lib/server/store";
+import { createStore, enterRoom, setStatus, submitCode, submitFinale, submitPenalty, submitPhoto, submitQuiz, submitReaction, submitSpot, submitVar, takeHint } from "@/lib/server/store";
 import type { ReactionRound } from "@/lib/types";
 
 function rounds(correct: boolean): ReactionRound[] {
@@ -71,36 +71,71 @@ describe("opslag van een spelevenement", () => {
     expect(snapshot.event.remainingMs).toBe(90 * 60_000 - 1_000);
   });
 
-  it("controleert de codepuzzel op de server en rekent een hint één keer", async () => {
+  it("houdt crack the code vergrendeld tot de vierde hint en opent het dossier alleen voor dat team", async () => {
     const dir = mkdtempSync(path.join(tmpdir(), "sparta-code-"));
     const store = createStore(path.join(dir, "store.json"));
     const t0 = Date.now();
     const created = await store.createEvent({
       name: "Code",
       accessCode: "geheim-123",
-      teamCount: 1,
+      teamCount: 2,
       now: t0,
     });
     await store.mutateOrganizer(created.token, (event, now) => setStatus(event, "start", undefined, now), t0);
     const login = await store.loginTeam(created.event.teams[0].joinCode, t0 + 10);
-    const station = created.event.stations.find((item) => item.puzzleId === "verdubbeling");
+    const other = await store.loginTeam(created.event.teams[1].joinCode, t0 + 11);
+    const station = created.event.stations.find((item) => item.puzzleId === "dossier");
     expect(station).toBeTruthy();
+    const required = ["polaroid_1", "security_camera", "bank_transaction", "transport_document"];
 
-    const wrong = await store.mutateTeam(login.token, (event, team, now) => submitCode(event, team, station!.code, "12", now));
+    await store.mutateTeam(login.token, (event, team) => {
+      team.collectedEvidenceIds = required.slice(0, 3);
+      return team.collectedEvidenceIds;
+    }, t0 + 12);
+    const lockedState = await store.teamContext(login.token, t0 + 13);
+    const locked = toTeamSnapshot(lockedState.event, lockedState.team, t0 + 13);
+    expect(locked.event.codeGate.requiredIds).toEqual(required);
+    expect(locked.event.codeGate.foundIds).toEqual(required.slice(0, 3));
+    expect(locked.event.codeGate.unlocked).toBe(false);
+    expect(locked.event.codeGate.solved).toBe(false);
+    await expect(
+      store.mutateTeam(login.token, (event, team, now) => submitCode(event, team, station!.code, "7088", now), t0 + 14),
+    ).rejects.toThrow(/vergrendeld/i);
+
+    await store.mutateTeam(login.token, (event, team) => {
+      team.collectedEvidenceIds = required;
+      return team.collectedEvidenceIds;
+    }, t0 + 15);
+    const openState = await store.teamContext(login.token, t0 + 16);
+    expect(toTeamSnapshot(openState.event, openState.team, t0 + 16).event.codeGate.unlocked).toBe(true);
+
+    const wrong = await store.mutateTeam(login.token, (event, team, now) => submitCode(event, team, station!.code, "1111", now), t0 + 17);
     expect(wrong.correct).toBe(false);
     expect(wrong.awarded).toBe(0);
 
-    const hinted = await store.mutateTeam(login.token, (event, team, now) => takeHint(event, team, station!.code, now));
-    const hintedAgain = await store.mutateTeam(login.token, (event, team, now) => takeHint(event, team, station!.code, now));
+    const hinted = await store.mutateTeam(login.token, (event, team, now) => takeHint(event, team, station!.code, now), t0 + 18);
+    const hintedAgain = await store.mutateTeam(login.token, (event, team, now) => takeHint(event, team, station!.code, now), t0 + 19);
     expect(hinted.costCharged).toBe(15);
     expect(hintedAgain.costCharged).toBe(0);
-    expect(hinted.hint).toMatch(/twee vorige/i);
+    expect(hinted.hint).toMatch(/kenteken/i);
 
-    const right = await store.mutateTeam(login.token, (event, team, now) => submitCode(event, team, station!.code, "31", now));
+    const right = await store.mutateTeam(login.token, (event, team, now) => submitCode(event, team, station!.code, "7088", now), t0 + 20);
     expect(right.correct).toBe(true);
     expect(right.awarded).toBe(100);
-    const state = await store.teamContext(login.token, t0 + 50);
+    expect(right.breakdown).toMatch(/handelaar/i);
+    const state = await store.teamContext(login.token, t0 + 21);
     expect(state.team.score).toBe(85);
+    expect(state.event.finaleOpen).toBe(false);
+    const solved = toTeamSnapshot(state.event, state.team, t0 + 21);
+    expect(solved.event.codeGate.solved).toBe(true);
+    expect(JSON.stringify(solved)).not.toContain('"answer":"7088"');
+
+    await expect(
+      store.mutateTeam(other.token, (event, team, now) => submitCode(event, team, station!.code, "7088", now), t0 + 22),
+    ).rejects.toThrow(/vergrendeld/i);
+    const outsider = await store.teamContext(other.token, t0 + 23);
+    expect(toTeamSnapshot(outsider.event, outsider.team, t0 + 23).event.codeGate.foundIds).toEqual([]);
+    expect(outsider.event.finaleOpen).toBe(false);
   });
 
   it("koppelt teams via een lobbylink, start één keer en houdt QR-ruimtes vast", async () => {
@@ -238,7 +273,7 @@ describe("opslag van een spelevenement", () => {
     expect(snapshot.event.locations.find((location) => location.id === "kasteel")?.available).toBe(false);
     expect(snapshot.event.evidenceTotal).toBe(7);
     expect(snapshot.event.finaleOpen).toBe(false);
-    expect(created.event.stations.some((station) => station.game === "photo")).toBe(false);
+    expect(created.event.stations.find((station) => station.game === "photo")?.enabled).toBe(true);
   });
 
   it("geeft alle zeven bewijzen uit één kamer en bewaart ze als de kamers wijzigen", async () => {
@@ -327,5 +362,89 @@ describe("opslag van een spelevenement", () => {
     expect(snapshot.event.evidence.find((item) => item.id === "polaroid_1")?.found).toBe(true);
     expect(snapshot.event.evidence.find((item) => item.id === "security_camera")?.found).toBe(false);
     expect(snapshot.leaderboard).toEqual([]);
+  });
+
+  it("rondt penalty, VAR, spot en foto één keer af en meldt een foute foto", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "sparta-games-"));
+    const store = createStore(path.join(dir, "store.json"));
+    const now = Date.now();
+    const created = await store.createEvent({
+      name: "Games",
+      accessCode: "games-1888",
+      teamCount: 1,
+      now,
+    });
+    await store.mutateOrganizer(created.token, (event, at) => setStatus(event, "start", undefined, at), now + 1);
+    const login = await store.loginTeam(created.event.teams[0].joinCode, now + 2);
+    const penalty = created.event.stations.find((station) => station.game === "penalty");
+    const variable = created.event.stations.find((station) => station.game === "var");
+    const spot = created.event.stations.find((station) => station.game === "spot");
+    const photo = created.event.stations.find((station) => station.game === "photo");
+    expect(penalty && variable && spot && photo).toBeTruthy();
+
+    const scored = await store.mutateTeam(
+      login.token,
+      (event, team, at) =>
+        submitPenalty(
+          event,
+          team,
+          penalty!.code,
+          ["links", "midden", "rechts", "links", "midden"],
+          ["rechts", "midden", "links", "links", "rechts"],
+          at,
+        ),
+      now + 3,
+    );
+    expect(scored.breakdown).toContain("3 van 5");
+    expect(scored.points).toBe(60);
+    const again = await store.mutateTeam(
+      login.token,
+      (event, team, at) =>
+        submitPenalty(event, team, penalty!.code, ["links", "links", "links", "links", "links"], ["rechts", "rechts", "rechts", "rechts", "rechts"], at),
+      now + 4,
+    );
+    expect(again.awarded).toBe(0);
+    expect(again.points).toBe(60);
+
+    const decisions = await store.mutateTeam(
+      login.token,
+      (event, team, at) => submitVar(event, team, variable!.code, ["buitenspel", "schwalbe", "correct"], at),
+      now + 5,
+    );
+    expect(decisions.breakdown).toContain("3 van 3");
+    const repeatVar = await store.mutateTeam(
+      login.token,
+      (event, team, at) => submitVar(event, team, variable!.code, ["geen", "geen", "geen"], at),
+      now + 6,
+    );
+    expect(repeatVar.awarded).toBe(0);
+
+    const missed = await store.mutateTeam(login.token, (event, team, at) => submitSpot(event, team, spot!.code, "bosman", at), now + 7);
+    expect(missed.correct).toBe(false);
+    expect(missed.finished).toBe(true);
+    expect(missed.feedback).toMatch(/stadion/i);
+    const repeatSpot = await store.mutateTeam(login.token, (event, team, at) => submitSpot(event, team, spot!.code, "thomas", at), now + 8);
+    expect(repeatSpot.awarded).toBe(0);
+    expect(repeatSpot.correct).toBe(false);
+
+    await expect(
+      store.mutateTeam(login.token, (event, team, at) => submitPhoto(event, team, photo!.code, "geen-foto", at), now + 9),
+    ).rejects.toThrow(/foto/i);
+    const sent = await store.mutateTeam(
+      login.token,
+      (event, team, at) => submitPhoto(event, team, photo!.code, "data:image/jpeg;base64,abc", at),
+      now + 10,
+    );
+    expect(sent.pending).toBe(true);
+    expect(sent.awarded).toBeGreaterThan(0);
+    const sentAgain = await store.mutateTeam(
+      login.token,
+      (event, team, at) => submitPhoto(event, team, photo!.code, "data:image/jpeg;base64,abc", at),
+      now + 11,
+    );
+    expect(sentAgain.awarded).toBe(0);
+    const after = await store.teamContext(login.token, now + 12);
+    expect(after.event.finaleOpen).toBe(false);
+    expect(after.team.completions).toHaveLength(4);
   });
 });

@@ -1,3 +1,4 @@
+import type { Zone } from "@/lib/content/minigames";
 import { GAME_TITLES } from "@/lib/copy";
 import { toTeamSnapshot } from "@/lib/server/dto";
 import { fail, json, readToken } from "@/lib/server/http";
@@ -11,12 +12,19 @@ import {
   submitCode,
   submitFinale,
   submitMemory,
+  submitPenalty,
   submitPhoto,
   submitQuiz,
   submitReaction,
+  submitSpot,
+  submitVar,
   takeHint,
 } from "@/lib/server/store";
 import type { ReactionRound } from "@/lib/types";
+
+function asZones(value: unknown): Zone[] {
+  return Array.isArray(value) ? (value as Zone[]) : [];
+}
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -107,6 +115,11 @@ export async function POST(request: Request) {
       if (body.action === "code") return submitCode(event, team, String(body.code ?? ""), body.answer, now);
       if (body.action === "hint") return takeHint(event, team, String(body.code ?? ""), now);
       if (body.action === "photo") return submitPhoto(event, team, String(body.code ?? ""), body.dataUrl, now);
+      if (body.action === "penalty") {
+        return submitPenalty(event, team, String(body.code ?? ""), asZones(body.shots), asZones(body.keepers), now);
+      }
+      if (body.action === "var") return submitVar(event, team, String(body.code ?? ""), (body.answers as string[]) ?? [], now);
+      if (body.action === "spot") return submitSpot(event, team, String(body.code ?? ""), String(body.suspectId ?? ""), now);
       if (body.action === "finale") {
         return submitFinale(event, team, body.answer, now, { suspectId: body.suspectId, explanation: body.explanation });
       }

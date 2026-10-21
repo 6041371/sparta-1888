@@ -1,5 +1,5 @@
 export type EventStatus = "lobby" | "active" | "paused" | "finished";
-export type GameType = "reaction" | "memory" | "code" | "photo";
+export type GameType = "reaction" | "memory" | "code" | "photo" | "penalty" | "var" | "spot";
 export type TieBreaker = "finale_then_time" | "time_then_finale";
 export type WarningLevel = "none" | "15" | "5" | "1" | "done";
 
@@ -237,6 +237,12 @@ export interface PublicEvent {
   evidenceCollected: number;
   evidenceTotal: number;
   fieldPlayers: PublicFieldPlayer[];
+  codeGate: {
+    requiredIds: string[];
+    foundIds: string[];
+    unlocked: boolean;
+    solved: boolean;
+  };
 }
 
 export interface PublicQuizQuestion {

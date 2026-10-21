@@ -80,6 +80,20 @@ describe("scores en dubbele afronding", () => {
     expect(slow.points).toBe(70);
   });
 
+  it("telt een tik voor het signaal niet als een goede reactie", () => {
+    const early = scoreReaction(
+      Array.from({ length: 12 }, () => ({ target: true, tapped: true, reactionMs: 1 })),
+      100,
+    );
+    const negative = scoreReaction(
+      Array.from({ length: 12 }, () => ({ target: true, tapped: true, reactionMs: -20 })),
+      100,
+    );
+    expect(early.points).toBe(0);
+    expect(negative.points).toBe(0);
+    expect(early.breakdown).toContain("0 van 12");
+  });
+
   it("weigert een onvolledige reactieronde", () => {
     expect(() => scoreReaction([{ target: true, tapped: true, reactionMs: 200 }], 100)).toThrow(/rondegegevens/i);
   });

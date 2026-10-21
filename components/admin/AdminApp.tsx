@@ -12,6 +12,10 @@ import { Banner, Button, Field, Loading } from "@/components/ui";
 import { ReactionArena } from "@/components/games/ReactionArena";
 import { MemoryVault } from "@/components/games/MemoryVault";
 import { CrackTheCode } from "@/components/games/CrackTheCode";
+import { PenaltyShootout } from "@/components/games/PenaltyShootout";
+import { PhotoMission } from "@/components/games/PhotoMission";
+import { SpotSuspect } from "@/components/games/SpotSuspect";
+import { VarCheck } from "@/components/games/VarCheck";
 
 const SECTIONS = [
   ["overzicht", "Overzicht"],
@@ -434,17 +438,21 @@ function StationEditor({
       <label className="field">
         <span>Minigame</span>
         <select value={draft.game} onChange={(input) => setDraft({ ...draft, game: input.target.value as OrganizerStation["game"] })}>
-          <option value="reaction">Reaction Arena</option>
-          <option value="memory">Memory Vault</option>
+          <option value="reaction">Reactietest</option>
+          <option value="memory">Geheugenspel</option>
           <option value="code">Crack the Code</option>
-          <option value="photo">Photo Mission</option>
+          <option value="photo">Foto-opdracht</option>
+          <option value="penalty">Penaltyreeks</option>
+          <option value="var">VAR-check</option>
+          <option value="spot">Spot de verdachte</option>
         </select>
       </label>
       {draft.game === "code" ? (
         <label className="field">
           <span>Puzzel</span>
           <select value={draft.puzzleId ?? "verdubbeling"} onChange={(input) => setDraft({ ...draft, puzzleId: input.target.value })}>
-            <option value="verdubbeling">Het scorebord</option>
+                      <option value="dossier">Verborgen dossier</option>
+                      <option value="verdubbeling">Het scorebord</option>
             <option value="kasteel">Verschoven letters</option>
             <option value="dambord">Doelpunt of kaart</option>
             <option value="optelsom">De vierde treffer</option>
@@ -471,10 +479,13 @@ function GamesGuide({ event }: { event: OrganizerSnapshot["event"] }) {
   const [playKey, setPlayKey] = useState(0);
   const [note, setNote] = useState<string | null>(null);
   const games = [
-    ["reaction", "Reaction Arena", "Twaalf symbolen. Alleen het Sparta-schild is goed. Score op nauwkeurigheid en snelheid."],
-    ["memory", "Memory Vault", "Zes paren. Extra pogingen en tijd kosten punten, afronden levert altijd een bodemscore op."],
-    ["code", "Crack the Code", "Het antwoord staat alleen op de server. Een foute gok verklapt de oplossing niet."],
-    ["photo", "Photo Mission", "Het team stuurt een foto. Jij beoordeelt creativiteit, samenwerking en uitvoering."],
+    ["reaction", "Reactietest", "Wacht op het signaal en tik. Een tik te vroeg telt niet mee."],
+    ["memory", "Geheugenspel", "Zes sporen. Een paar blijft liggen, een misser draait terug."],
+    ["code", "Crack the Code", "Het dossier opent pas als het team de vier aanwijzingen heeft. Het antwoord staat alleen op de server."],
+    ["photo", "Foto-opdracht", "Het team stuurt een foto. Jij beoordeelt creativiteit, samenwerking en uitvoering."],
+    ["penalty", "Penaltyreeks", "Vijf schoten. De keeper kiest per poging links, midden of rechts."],
+    ["var", "VAR-check", "Korte getekende situaties. Het antwoord hoort bij wat het beeld laat zien."],
+    ["spot", "Spot de verdachte", "Eén signalement, vijf verdachten. De volgorde wisselt."],
   ] as const;
   const testing = event.stations.find((station) => station.id === testingId) ?? null;
 
@@ -488,7 +499,7 @@ function GamesGuide({ event }: { event: OrganizerSnapshot["event"] }) {
     <div className="stack">
       <Banner>Tijdelijke test. Je speelt de minigame hier, zonder de vragen van de kamer. Er worden geen punten opgeslagen.</Banner>
       {games.map(([id, title, text]) => {
-        const stations = event.stations.filter((station) => station.game === id && station.game !== "photo");
+        const stations = event.stations.filter((station) => station.game === id);
         return (
           <article key={id} className="paper stack">
             <h2 className="display">{title}</h2>
@@ -513,7 +524,7 @@ function GamesGuide({ event }: { event: OrganizerSnapshot["event"] }) {
           </article>
         );
       })}
-      {testing && testing.game !== "photo" ? (
+      {testing ? (
         <article className="paper stack">
           <div className="spread">
             <h2 className="display" style={{ margin: 0 }}>Test: {testing.name}</h2>
@@ -559,6 +570,18 @@ function GamesGuide({ event }: { event: OrganizerSnapshot["event"] }) {
               }}
               onHint={() => setNote(testing.puzzleHint ?? "Er is geen hint.")}
             />
+          ) : null}
+          {testing.game === "penalty" ? (
+            <PenaltyShootout key={playKey} busy={false} onFinish={(result) => setNote(`Test: ${result.shots.filter((shot, index) => shot !== result.keepers[index]).length} van de vijf erin. Niets opgeslagen.`)} />
+          ) : null}
+          {testing.game === "var" ? (
+            <VarCheck key={playKey} busy={false} onFinish={() => setNote("VAR-test afgerond. Niets opgeslagen.")} />
+          ) : null}
+          {testing.game === "spot" ? (
+            <SpotSuspect key={playKey} busy={false} onFinish={() => setNote("Signalement getest. Niets opgeslagen.")} />
+          ) : null}
+          {testing.game === "photo" ? (
+            <PhotoMission key={playKey} prompt={testing.photoPrompt || "Maak een testfoto."} busy={false} onSubmit={() => setNote("Foto ontvangen. In deze test wordt niets opgeslagen.")} />
           ) : null}
         </article>
       ) : null}

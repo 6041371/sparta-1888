@@ -40,7 +40,7 @@ export function PhotoMission({
   return (
     <div className="stack">
       <article className="paper stack">
-        <p className="kicker">Photo Mission</p>
+        <p className="kicker">Foto-opdracht</p>
         <h2 className="display">Samen in beeld</h2>
         <p className="serif" style={{ fontSize: "1.25rem" }}>{prompt}</p>
         <p className="small">De organisatie beoordeelt creativiteit, samenwerking en uitvoering. Er is geen automatische fotobeoordeling.</p>

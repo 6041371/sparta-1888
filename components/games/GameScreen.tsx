@@ -6,8 +6,13 @@ import { api } from "@/lib/client/api";
 import type { PublicPuzzle, PublicStation, TeamSnapshot } from "@/lib/types";
 import type { ReactionRound } from "@/lib/types";
 import { CrackTheCode } from "@/components/games/CrackTheCode";
+import { DossierCode } from "@/components/games/DossierCode";
 import { MemoryVault } from "@/components/games/MemoryVault";
+import { PenaltyShootout } from "@/components/games/PenaltyShootout";
+import { PhotoMission } from "@/components/games/PhotoMission";
 import { ReactionArena } from "@/components/games/ReactionArena";
+import { SpotSuspect } from "@/components/games/SpotSuspect";
+import { VarCheck } from "@/components/games/VarCheck";
 import { useTeam } from "@/components/team/TeamShell";
 import { Banner, Button, Loading } from "@/components/ui";
 
@@ -32,6 +37,7 @@ interface Outcome {
   feedback?: string;
   pending?: boolean;
   hint?: string;
+  finished?: boolean;
 }
 
 export function GameScreen({ code }: { code: string }) {
@@ -73,7 +79,7 @@ export function GameScreen({ code }: { code: string }) {
       const data = await api<{ outcome: Outcome; state: TeamSnapshot }>("/api/team", body);
       if (data.outcome.hint) setHint(data.outcome.hint);
       setFeedback(data.outcome.feedback ? { text: data.outcome.feedback, ok: data.outcome.correct !== false } : null);
-      setOutcome(body.action === "hint" || data.outcome.correct === false ? null : data.outcome);
+      setOutcome(body.action === "hint" || (data.outcome.correct === false && !data.outcome.finished) ? null : data.outcome);
       await refresh();
       if (body.action !== "hint") setPractice(false);
     } catch (caught) {
@@ -142,7 +148,16 @@ export function GameScreen({ code }: { code: string }) {
           onFinish={(result) => (practice ? setPractice(false) : send({ action: "memory", code, ...result }))}
         />
       ) : null}
-      {!done && !outcome && entered.playable && entered.station.game === "code" && entered.station.puzzle ? (
+      {!done && !outcome && entered.playable && entered.station.game === "code" && entered.station.puzzle?.id === "dossier" ? (
+        <DossierBlock
+          puzzle={entered.station.puzzle}
+          busy={busy}
+          hintUsed={entered.hintUsed || Boolean(hint)}
+          onAnswer={(answer) => send({ action: "code", code, answer })}
+          onHint={() => send({ action: "hint", code })}
+        />
+      ) : null}
+      {!done && !outcome && entered.playable && entered.station.game === "code" && entered.station.puzzle && entered.station.puzzle.id !== "dossier" ? (
         <CodeBlock
           puzzle={entered.station.puzzle}
           busy={busy}
@@ -151,13 +166,23 @@ export function GameScreen({ code }: { code: string }) {
           onHint={() => send({ action: "hint", code })}
         />
       ) : null}
-      {!done && entered.station.game === "photo" ? (
-        <Banner>Deze foto-opdracht hoort niet meer bij het spel. Scan de QR-code van de ruimte voor de vragen.</Banner>
+      {!done && !outcome && (entered.playable || practice) && entered.station.game === "penalty" ? (
+        <PenaltyShootout busy={busy} onFinish={(result) => (practice ? setPractice(false) : send({ action: "penalty", code, ...result }))} />
+      ) : null}
+      {!done && !outcome && (entered.playable || practice) && entered.station.game === "var" ? (
+        <VarCheck busy={busy} onFinish={(answers) => (practice ? setPractice(false) : send({ action: "var", code, answers }))} />
+      ) : null}
+      {!done && !outcome && entered.playable && entered.station.game === "spot" ? (
+        <SpotSuspect busy={busy} onFinish={(suspectId) => send({ action: "spot", code, suspectId })} />
+      ) : null}
+      {!done && !outcome && entered.playable && entered.station.game === "photo" ? (
+        <PhotoMission prompt={entered.photoPrompt || "Maak samen een foto die bij deze kamer past."} busy={busy} onSubmit={(dataUrl) => send({ action: "photo", code, dataUrl })} />
       ) : null}
       {outcome && !done ? (
         <article className="paper stack">
-          <h2 className="display">{outcome.alreadyCompleted ? "Al afgerond" : "Gelukt"}</h2>
+          <h2 className="display">{outcome.correct === false ? "Beslissing" : outcome.alreadyCompleted ? "Al afgerond" : "Gelukt"}</h2>
           {outcome.breakdown ? <p>{outcome.breakdown}</p> : null}
+          {outcome.correct === false && outcome.feedback ? <p>{outcome.feedback}</p> : null}
           {outcome.pending ? <p>De foto staat klaar voor de organisatie. Jullie aanwijzing is open.</p> : null}
           {outcome.clue ? (
             <div className="clue">
@@ -170,6 +195,36 @@ export function GameScreen({ code }: { code: string }) {
         </article>
       ) : null}
     </div>
+  );
+}
+
+function DossierBlock({
+  puzzle,
+  busy,
+  hintUsed,
+  onAnswer,
+  onHint,
+}: {
+  puzzle: PublicPuzzle;
+  busy: boolean;
+  hintUsed: boolean;
+  onAnswer: (answer: string) => void;
+  onHint: () => void;
+}) {
+  const { state } = useTeam();
+  if (!state) return null;
+  return (
+    <DossierCode
+      puzzle={puzzle}
+      evidence={state.event.evidence}
+      gate={state.event.codeGate}
+      busy={busy}
+      hintUsed={hintUsed}
+      hintCost={state.team.hintCost}
+      hintsLeft={state.team.hintsLeft}
+      onAnswer={onAnswer}
+      onHint={onHint}
+    />
   );
 }
 

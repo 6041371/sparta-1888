@@ -34,6 +34,8 @@ import type {
   TieBreaker,
 } from "@/lib/types";
 import { EVIDENCE_ITEMS, distributeEvidence, finaleUnlocked, grantByCompletion } from "@/lib/content/evidence";
+import { DOSSIER_PUZZLE_ID, DOSSIER_TEXT, dossierUnlocked, requiredEvidenceIds, scorePenalty, scoreSpot, scoreVar } from "@/lib/content/minigames";
+import type { Zone } from "@/lib/content/minigames";
 import { assignPlayers } from "@/lib/content/field";
 import { getQuestion, gradeQuiz, officialAnswer, questionsFor } from "@/lib/content/quiz";
 import { DEFAULT_FINALE, DEFAULT_SCORING, ROOM_CODES, ROOM_TEMPLATES, STATION_TEMPLATES, roomIdForEntryCode } from "@/lib/server/defaults";
@@ -81,14 +83,19 @@ function reviveEvent(event: GameEvent) {
     if (!existing) event.rooms.push({ ...template, available: false });
     else existing.name = template.name;
   }
+  for (const template of STATION_TEMPLATES) {
+    if (event.stations.some((station) => station.id === template.id)) continue;
+    event.stations.push({ ...template, code: uniqueStationCode(event) });
+  }
   for (const station of event.stations) {
-    if (station.game === "photo") station.enabled = false;
     const template = STATION_TEMPLATES.find((item) => item.id === station.id);
-    if (template) {
-      station.name = template.name;
-      station.clueTitle = "";
-      station.clueText = "";
-    }
+    if (!template) continue;
+    station.name = template.name;
+    station.game = template.game;
+    station.puzzleId = template.puzzleId;
+    station.photoPrompt = template.photoPrompt;
+    station.clueTitle = "";
+    station.clueText = "";
   }
   for (const team of event.teams) {
     team.briefingSeen = Boolean(team.briefingSeen);
@@ -881,6 +888,13 @@ export function submitCode(event: GameEvent, team: Team, code: string, answer: u
     };
   }
   const puzzle = getPuzzle(station.puzzleId);
+  if (puzzle.id === DOSSIER_PUZZLE_ID) {
+    ensureAssignments(event);
+    const required = requiredEvidenceIds(event.evidenceAssignments ?? {}, station.roomId);
+    if (!dossierUnlocked(required, team.collectedEvidenceIds ?? [])) {
+      throw new GameError("Dit dossier is nog vergrendeld. Verzamel eerst de ontbrekende aanwijzingen.");
+    }
+  }
   const given = typeof answer === "string" ? answer : "";
   if (normCode(given) !== normCode(puzzle.answer)) {
     return {
@@ -894,7 +908,7 @@ export function submitCode(event: GameEvent, team: Team, code: string, answer: u
       feedback: codeFeedback(given, puzzle.answer),
     };
   }
-  const result = award(event, team, station, station.pointsMax, "Puzzel opgelost.", now, null);
+  const result = award(event, team, station, station.pointsMax, puzzle.id === DOSSIER_PUZZLE_ID ? DOSSIER_TEXT : "Puzzel opgelost.", now, null);
   return { ...result, correct: true, feedback: "Goed opgelost." };
 }
 
@@ -907,6 +921,13 @@ export function takeHint(event: GameEvent, team: Team, code: string, now: number
   } else {
     const station = event.stations.find((item) => item.id === key);
     if (!station || station.game !== "code") throw new GameError("Voor deze opdracht is geen hint beschikbaar.");
+    if (station.puzzleId === DOSSIER_PUZZLE_ID) {
+      ensureAssignments(event);
+      const required = requiredEvidenceIds(event.evidenceAssignments ?? {}, station.roomId);
+      if (!dossierUnlocked(required, team.collectedEvidenceIds ?? [])) {
+        throw new GameError("De hint opent pas als de ontbrekende aanwijzingen binnen zijn.");
+      }
+    }
     hint = getPuzzle(station.puzzleId).hint;
   }
   const applied = applyHint(team, {
@@ -925,13 +946,88 @@ export function takeHint(event: GameEvent, team: Team, code: string, now: number
   };
 }
 
-export function submitPhoto(event: GameEvent, team: Team, code: string, dataUrl: unknown, now: number): never {
-  void event;
-  void team;
-  void code;
-  void dataUrl;
-  void now;
-  throw new GameError("Foto-opdrachten horen niet meer bij dit spel.", 410);
+export function submitPhoto(event: GameEvent, team: Team, code: string, dataUrl: unknown, now: number) {
+  const block = playBlockReason(event, now);
+  if (block) throw new GameError(block, 403);
+  const station = findLoose(event, code);
+  assertGame(station, "photo");
+  const existing = team.completions.find((item) => item.stationId === station.id);
+  if (existing) {
+    return {
+      alreadyCompleted: true,
+      points: existing.points,
+      awarded: 0,
+      breakdown: existing.breakdown,
+      clue: { title: station.clueTitle, text: station.clueText },
+      score: team.score,
+      pending: existing.photo?.status === "pending",
+    };
+  }
+  if (typeof dataUrl !== "string" || !/^data:image\/(jpeg|jpg|png|webp);base64,/i.test(dataUrl)) {
+    throw new GameError("Kies een foto. Alleen een afbeelding kan worden ingestuurd.");
+  }
+  if (dataUrl.length > 1_800_000) throw new GameError("De foto is te groot. Maak hem kleiner of kies een andere.");
+  const prompt = promptFor(team, station);
+  const points = Math.round(station.pointsMax * 0.4);
+  const result = award(event, team, station, points, "Foto ingestuurd.", now, {
+    dataUrl,
+    prompt,
+    status: "pending",
+    creativity: 0,
+    teamwork: 0,
+    execution: 0,
+  });
+  return { ...result, pending: true };
+}
+
+export function submitPenalty(event: GameEvent, team: Team, code: string, shots: Zone[], keepers: Zone[], now: number) {
+  const block = playBlockReason(event, now);
+  if (block) throw new GameError(block, 403);
+  const station = findLoose(event, code);
+  assertGame(station, "penalty");
+  const existing = team.completions.find((item) => item.stationId === station.id);
+  if (existing) {
+    return { alreadyCompleted: true, points: existing.points, awarded: 0, breakdown: existing.breakdown, clue: null, score: team.score };
+  }
+  const scored = scorePenalty(shots, keepers, station.pointsMax);
+  return award(event, team, station, scored.points, scored.breakdown, now, null);
+}
+
+export function submitVar(event: GameEvent, team: Team, code: string, answers: string[], now: number) {
+  const block = playBlockReason(event, now);
+  if (block) throw new GameError(block, 403);
+  const station = findLoose(event, code);
+  assertGame(station, "var");
+  const existing = team.completions.find((item) => item.stationId === station.id);
+  if (existing) {
+    return { alreadyCompleted: true, points: existing.points, awarded: 0, breakdown: existing.breakdown, clue: null, score: team.score };
+  }
+  const scored = scoreVar(answers, station.pointsMax);
+  return award(event, team, station, scored.points, scored.breakdown, now, null);
+}
+
+export function submitSpot(event: GameEvent, team: Team, code: string, suspectId: string, now: number) {
+  const block = playBlockReason(event, now);
+  if (block) throw new GameError(block, 403);
+  const station = findLoose(event, code);
+  assertGame(station, "spot");
+  const existing = team.completions.find((item) => item.stationId === station.id);
+  if (existing) {
+    return {
+      alreadyCompleted: true,
+      correct: existing.points >= station.pointsMax,
+      finished: true,
+      points: existing.points,
+      awarded: 0,
+      breakdown: existing.breakdown,
+      feedback: existing.breakdown,
+      clue: null,
+      score: team.score,
+    };
+  }
+  const scored = scoreSpot(suspectId, station.pointsMax);
+  const result = award(event, team, station, scored.points, scored.feedback, now, null);
+  return { ...result, correct: scored.correct, finished: true, feedback: scored.feedback };
 }
 
 export function reviewPhoto(
@@ -987,13 +1083,13 @@ export function enterRoom(event: GameEvent, team: Team, roomId: string, now: num
     if (!team.visitedRooms.includes(room.id)) team.visitedRooms.push(room.id);
     return { href: `/spel/locatie/${room.id}` };
   }
-  const station = event.stations.find((item) => item.roomId === room.id && item.enabled && item.game !== "photo");
+  const station = event.stations.find((item) => item.roomId === room.id && item.enabled);
   if (!station) throw new GameError("Voor deze ruimte staat vandaag geen opdracht open.", 403);
   return enterStation(event, team, station.code, now);
 }
 
 function roomStation(event: GameEvent, roomId: string) {
-  return event.stations.find((station) => station.roomId === roomId && station.enabled && station.game !== "photo") ?? null;
+  return event.stations.find((station) => station.roomId === roomId && station.enabled) ?? null;
 }
 
 function roomReady(event: GameEvent, team: Team, roomId: string) {
@@ -1163,7 +1259,7 @@ function applyStationFields(event: GameEvent, station: Station, input: Record<st
   }
   if (input.alternativeLocation !== undefined) station.alternativeLocation = cleanOptional(input.alternativeLocation, 80);
   if (input.game !== undefined) {
-    if (input.game !== "reaction" && input.game !== "memory" && input.game !== "code" && input.game !== "photo") {
+    if (input.game !== "reaction" && input.game !== "memory" && input.game !== "code" && input.game !== "photo" && input.game !== "penalty" && input.game !== "var" && input.game !== "spot") {
       throw new GameError("Kies een geldige minigame.");
     }
     station.game = input.game;
