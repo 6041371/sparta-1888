@@ -341,6 +341,8 @@ export interface OrganizerStation extends Station {
   puzzleAnswer: string | null;
   puzzleHint: string | null;
   puzzleTitle: string | null;
+  puzzlePrompt: string | null;
+  puzzleInputLabel: string | null;
 }
 
 export interface OrganizerEvent {

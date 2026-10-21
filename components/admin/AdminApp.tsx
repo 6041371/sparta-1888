@@ -5,10 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/client/api";
 import { ROOM_CODES } from "@/lib/server/defaults";
-import { formatRemaining, suggestedPhotoPoints } from "@/lib/game/logic";
+import { formatRemaining, normCode, scoreMemory, scoreReaction, suggestedPhotoPoints } from "@/lib/game/logic";
 import type { OrganizerSnapshot, OrganizerStation, ScoringConfig } from "@/lib/types";
 import { Shield } from "@/components/Shield";
 import { Banner, Button, Field, Loading } from "@/components/ui";
+import { ReactionArena } from "@/components/games/ReactionArena";
+import { MemoryVault } from "@/components/games/MemoryVault";
+import { CrackTheCode } from "@/components/games/CrackTheCode";
 
 const SECTIONS = [
   ["overzicht", "Overzicht"],
@@ -464,28 +467,101 @@ function StationEditor({
 }
 
 function GamesGuide({ event }: { event: OrganizerSnapshot["event"] }) {
+  const [testingId, setTestingId] = useState<string | null>(null);
+  const [playKey, setPlayKey] = useState(0);
+  const [note, setNote] = useState<string | null>(null);
   const games = [
     ["reaction", "Reaction Arena", "Twaalf symbolen. Alleen het Sparta-schild is goed. Score op nauwkeurigheid en snelheid."],
     ["memory", "Memory Vault", "Zes paren. Extra pogingen en tijd kosten punten, afronden levert altijd een bodemscore op."],
     ["code", "Crack the Code", "Het antwoord staat alleen op de server. Een foute gok verklapt de oplossing niet."],
     ["photo", "Photo Mission", "Het team stuurt een foto. Jij beoordeelt creativiteit, samenwerking en uitvoering."],
   ] as const;
+  const testing = event.stations.find((station) => station.id === testingId) ?? null;
+
+  function openTest(station: OrganizerStation) {
+    setTestingId(station.id);
+    setPlayKey((value) => value + 1);
+    setNote(null);
+  }
+
   return (
     <div className="stack">
-      {games.map(([id, title, text]) => (
-        <article key={id} className="paper stack">
-          <h2 className="display">{title}</h2>
-          <p>{text}</p>
-          <p className="small">
-            Stations: {event.stations.filter((station) => station.game === id).map((station) => `${station.name} (${station.visible ? "open" : "verborgen"})`).join(", ") || "geen"}
-          </p>
-          {id === "code" ? (
+      <Banner>Tijdelijke test. Je speelt de minigame hier, zonder de vragen van de kamer. Er worden geen punten opgeslagen.</Banner>
+      {games.map(([id, title, text]) => {
+        const stations = event.stations.filter((station) => station.game === id && station.game !== "photo");
+        return (
+          <article key={id} className="paper stack">
+            <h2 className="display">{title}</h2>
+            <p>{text}</p>
             <p className="small">
-              Puzzelantwoorden, alleen voor de organisatie: {event.stations.filter((station) => station.puzzleTitle).map((station) => `${station.puzzleTitle} = ${station.puzzleAnswer}`).join(" · ")}
+              Stations: {event.stations.filter((station) => station.game === id).map((station) => `${station.name} (${station.visible ? "open" : "verborgen"})`).join(", ") || "geen"}
             </p>
+            {id === "code" ? (
+              <p className="small">
+                Puzzelantwoorden, alleen voor de organisatie: {event.stations.filter((station) => station.puzzleTitle).map((station) => `${station.puzzleTitle} = ${station.puzzleAnswer}`).join(" · ")}
+              </p>
+            ) : null}
+            {stations.length > 0 ? (
+              <div className="row">
+                {stations.map((station) => (
+                  <Button key={station.id} kind="dark" onClick={() => openTest(station)}>
+                    Test {station.name}
+                  </Button>
+                ))}
+              </div>
+            ) : null}
+          </article>
+        );
+      })}
+      {testing && testing.game !== "photo" ? (
+        <article className="paper stack">
+          <div className="spread">
+            <h2 className="display" style={{ margin: 0 }}>Test: {testing.name}</h2>
+            <Button kind="ghost" onClick={() => setTestingId(null)}>Sluiten</Button>
+          </div>
+          {note ? <Banner tone="ok">{note}</Banner> : null}
+          {testing.game === "reaction" ? (
+            <ReactionArena
+              key={playKey}
+              busy={false}
+              onFinish={(rounds) => {
+                const scored = scoreReaction(rounds, testing.pointsMax);
+                setNote(`Testscore ${scored.points} punten. ${scored.breakdown} Niets opgeslagen.`);
+              }}
+            />
+          ) : null}
+          {testing.game === "memory" ? (
+            <MemoryVault
+              key={playKey}
+              busy={false}
+              onFinish={(result) => {
+                const scored = scoreMemory(result, testing.pointsMax, event.scoring);
+                setNote(`Testscore ${scored.points} punten. ${scored.breakdown} Niets opgeslagen.`);
+              }}
+            />
+          ) : null}
+          {testing.game === "code" && testing.puzzlePrompt && testing.puzzleInputLabel ? (
+            <CrackTheCode
+              key={playKey}
+              puzzle={{
+                id: testing.puzzleId ?? "test",
+                title: testing.puzzleTitle ?? testing.name,
+                prompt: testing.puzzlePrompt,
+                inputLabel: testing.puzzleInputLabel,
+              }}
+              busy={false}
+              hintUsed={false}
+              hintCost={0}
+              hintsLeft={1}
+              onAnswer={(answer) => {
+                const correct = normCode(answer) === normCode(testing.puzzleAnswer ?? "");
+                setNote(correct ? "Goed opgelost. Dit is een test, er zijn geen punten opgeslagen." : "Dat klopt nog niet. Bespreek het patroon nog een keer.");
+              }}
+              onHint={() => setNote(testing.puzzleHint ?? "Er is geen hint.")}
+            />
           ) : null}
         </article>
-      ))}
+      ) : null}
     </div>
   );
 }

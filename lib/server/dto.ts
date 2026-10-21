@@ -208,6 +208,8 @@ export function toOrganizerSnapshot(event: GameEvent, now: number, includePhotos
       puzzleAnswer: puzzle?.answer ?? null,
       puzzleHint: puzzle?.hint ?? null,
       puzzleTitle: puzzle?.title ?? null,
+      puzzlePrompt: puzzle?.prompt ?? null,
+      puzzleInputLabel: puzzle?.inputLabel ?? null,
     };
   });
 

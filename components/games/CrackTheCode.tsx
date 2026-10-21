@@ -40,7 +40,11 @@ export function CrackTheCode({
       <Button full disabled={busy || !answer.trim()} onClick={() => onAnswer(answer)}>
         Controleer antwoord
       </Button>
-      {confirmHint ? (
+      {hintCost <= 0 ? (
+        <Button full kind="warn" disabled={busy} onClick={() => onHint()}>
+          Toon de hint
+        </Button>
+      ) : confirmHint ? (
         <div className="paper stack">
           <p>
             {hintUsed
