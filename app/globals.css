@@ -408,8 +408,8 @@ input[type="checkbox"] {
 
 .memory {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
 }
 .mem {
   aspect-ratio: 3 / 4;
@@ -426,8 +426,8 @@ input[type="checkbox"] {
 .mem.matched { outline: 2px solid var(--ok); }
 .mem span { font-size: 0.78rem; font-weight: 700; text-align: center; line-height: 1.2; }
 .mem-face { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; width: 100%; height: 100%; gap: 2px; }
-.mem-face img { width: 100%; height: 74%; object-fit: contain; }
-.mem-face small { font-size: 0.68rem; font-weight: 750; line-height: 1.15; text-align: center; }
+.mem-face img { width: 100%; height: 68%; flex: 0 0 68%; object-fit: contain; object-position: center bottom; }
+.mem-face small { height: 2.3em; display: flex; align-items: center; justify-content: center; font-size: 0.62rem; font-weight: 750; line-height: 1.15; text-align: center; }
 .portrait { display: grid; justify-items: center; gap: 8px; padding: 8px 12px 4px; }
 .portrait img { width: min(200px, 58vw); max-height: 210px; object-fit: contain; }
 .portrait strong { color: white; font-size: 1.15rem; text-align: center; }
