@@ -1,28 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { CLUB_PORTRAITS } from "@/lib/content/portraits";
 import { MEMORY_PAIRS } from "@/lib/game/logic";
 import { Button } from "@/components/ui";
-
-const PAIRS: { pair: string; faces: [string, string] }[] = [
-  { pair: "tas", faces: ["Grote sporttas", "Donkere jas"] },
-  { pair: "bus", faces: ["Kenteken …B7", "Donkere bestelbus"] },
-  { pair: "bank", faces: ["€450", "Reservering"] },
-  { pair: "brons", faces: ["18 kg", "Bronzen object"] },
-  { pair: "jaar", faces: ["1888", "Oprichtingsjaar"] },
-  { pair: "chat", faces: ["Overdracht", "Veilige plek"] },
-];
 
 interface Card {
   id: string;
   pair: string;
-  label: string;
+  name: string;
+  image: string;
 }
 
 function deal(): Card[] {
-  const cards = PAIRS.flatMap((item) => [
-    { id: `${item.pair}-a`, pair: item.pair, label: item.faces[0] },
-    { id: `${item.pair}-b`, pair: item.pair, label: item.faces[1] },
+  const cards = CLUB_PORTRAITS.flatMap((player) => [
+    { id: `${player.id}-a`, pair: player.id, name: player.name, image: player.image },
+    { id: `${player.id}-b`, pair: player.id, name: player.name, image: player.image },
   ]);
   for (let index = cards.length - 1; index > 0; index -= 1) {
     const swap = Math.floor(Math.random() * (index + 1));
@@ -86,7 +79,7 @@ export function MemoryVault({
       openRef.current = [];
       setOpen([]);
       lock.current = false;
-    }, 700);
+    }, 900);
   }
 
   if (!started) {
@@ -94,8 +87,8 @@ export function MemoryVault({
       <div className="stack">
         <div className="paper stack">
           <p className="kicker">Geheugenspel</p>
-          <h2 className="display">Zes sporen</h2>
-          <p>Draai twee kaarten om. Een paar dat bij hetzelfde spoor hoort, blijft liggen. Een misser draait terug.</p>
+          <h2 className="display">Zes Spartanen</h2>
+          <p>Draai twee kaarten om. Hetzelfde gezicht blijft liggen. De naam staat erbij, zodat je de spelers leert kennen.</p>
         </div>
         <Button
           full
@@ -106,7 +99,7 @@ export function MemoryVault({
             setStarted(true);
           }}
         >
-          Open de kluis
+          Start het geheugen
         </Button>
       </div>
     );
@@ -127,9 +120,16 @@ export function MemoryVault({
               type="button"
               className={`mem ${shown ? "open" : ""} ${matched.includes(card.pair) ? "matched" : ""}`}
               onClick={() => turn(card)}
-              aria-label={shown ? card.label : "Dichte kaart"}
+              aria-label={shown ? card.name : "Dichte kaart"}
             >
-              {shown ? <span>{card.label}</span> : <span className="display">?</span>}
+              {shown ? (
+                <span className="mem-face">
+                  <img src={card.image} alt="" />
+                  <small>{card.name}</small>
+                </span>
+              ) : (
+                <span className="display">?</span>
+              )}
             </button>
           );
         })}

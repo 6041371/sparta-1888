@@ -391,8 +391,8 @@ function GamesGuide({ event }: { event: OrganizerSnapshot["event"] }) {
   const [playKey, setPlayKey] = useState(0);
   const [note, setNote] = useState<string | null>(null);
   const games = [
-    ["reaction", "Reactietest", "Wacht op het signaal en tik. Een tik te vroeg telt niet mee."],
-    ["memory", "Geheugenspel", "Zes sporen. Een paar blijft liggen, een misser draait terug."],
+    ["reaction", "Reactietest", "Twaalf portretten. Tik alleen bij Bok de Korver."],
+    ["memory", "Geheugenspel", "Zes Spartanen, elk twee keer. De naam staat op de kaart."],
     ["code", "Crack the Code", "Het dossier opent pas als het team de vier aanwijzingen heeft. Het antwoord staat alleen op de server."],
     ["photo", "Foto-opdracht", "Het team stuurt een foto. Jij beoordeelt creativiteit, samenwerking en uitvoering."],
     ["penalty", "Penaltyreeks", "Vijf schoten op het doel. De keeper duikt per poging links, midden of rechts."],

@@ -9,8 +9,8 @@ export const GAME_TITLES = {
 } as const;
 
 export const GAME_SUMMARIES = {
-  reaction: "Wacht op het signaal en tik dan zo snel mogelijk.",
-  memory: "Zoek de paren die bij hetzelfde spoor horen.",
+  reaction: "Tik alleen als Bok de Korver in beeld is.",
+  memory: "Zoek de twee dezelfde Spartanen. De naam staat op de kaart.",
   code: "Kraak het dossier met de aanwijzingen uit de zaakmap.",
   photo: "Maak samen een foto bij de opdracht.",
   penalty: "Vijf strafschoppen. Tik links, midden of rechts. De keeper duikt een willekeurige kant op.",

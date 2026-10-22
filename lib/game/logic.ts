@@ -134,7 +134,7 @@ export function scoreReaction(rounds: ReactionRound[], pointsMax: number): Score
   const average = speedCount ? Math.round(speedSum / speedCount) : null;
   const speed = average === null ? 0 : clamp((1200 - average) / (1200 - 280), 0, 1);
   const points = Math.round(pointsMax * (0.7 * accuracy + 0.3 * accuracy * speed));
-  const speedText = average === null ? "geen geraakte schilden" : `gemiddeld ${average} ms`;
+  const speedText = average === null ? "geen tijdige tik op Bok de Korver" : `gemiddeld ${average} ms`;
   return {
     points,
     breakdown: `${correct} van ${REACTION_ROUNDS} goed, ${speedText}.`,
