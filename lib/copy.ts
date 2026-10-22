@@ -13,7 +13,7 @@ export const GAME_SUMMARIES = {
   memory: "Zoek de paren die bij hetzelfde spoor horen.",
   code: "Kraak het dossier met de aanwijzingen uit de zaakmap.",
   photo: "Maak samen een foto bij de opdracht.",
-  penalty: "Neem vijf penalty's. De keeper kiest elke keer een kant.",
+  penalty: "Vijf strafschoppen. Tik links, midden of rechts. De keeper duikt een willekeurige kant op.",
   var: "Bekijk het beeld en kies de juiste beslissing.",
   spot: "Kies welke verdachte bij het signalement past.",
 } as const;

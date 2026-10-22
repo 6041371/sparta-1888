@@ -395,7 +395,7 @@ function GamesGuide({ event }: { event: OrganizerSnapshot["event"] }) {
     ["memory", "Geheugenspel", "Zes sporen. Een paar blijft liggen, een misser draait terug."],
     ["code", "Crack the Code", "Het dossier opent pas als het team de vier aanwijzingen heeft. Het antwoord staat alleen op de server."],
     ["photo", "Foto-opdracht", "Het team stuurt een foto. Jij beoordeelt creativiteit, samenwerking en uitvoering."],
-    ["penalty", "Penaltyreeks", "Vijf schoten. De keeper kiest per poging links, midden of rechts."],
+    ["penalty", "Penaltyreeks", "Vijf schoten op het doel. De keeper duikt per poging links, midden of rechts."],
     ["var", "VAR-check", "Korte getekende situaties. Het antwoord hoort bij wat het beeld laat zien."],
     ["spot", "Spot de verdachte", "Eén signalement, vijf verdachten. De volgorde wisselt."],
   ] as const;

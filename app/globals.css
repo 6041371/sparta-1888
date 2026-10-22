@@ -437,6 +437,87 @@ input[type="checkbox"] {
   text-transform: capitalize;
 }
 .goal-zone:disabled { opacity: 0.7; }
+.penalty-pips { display: flex; gap: 8px; }
+.penalty-pips i {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #d9d4cc;
+}
+.penalty-pips i.is-goal { background: var(--ok); }
+.penalty-pips i.is-save { background: var(--red); }
+.penalty-scene {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #1d6b45;
+}
+.penalty-bg { width: 100%; height: 100%; object-fit: cover; display: block; }
+.penalty-keeper, .penalty-ball { position: absolute; pointer-events: none; height: auto; }
+.penalty-keeper.midden { width: 13%; left: 43.5%; top: 13%; z-index: 2; }
+.penalty-keeper.links { width: 38%; left: 14%; top: 20%; z-index: 2; }
+.penalty-keeper.rechts { width: 38%; left: 48%; top: 20%; z-index: 2; }
+.penalty-ball {
+  width: 5.6%;
+  left: 47.2%;
+  top: 59%;
+  z-index: 3;
+}
+.penalty-ball.links.is-goal { left: 27%; top: 26%; animation: fly-links-goal 0.55s ease-in; }
+.penalty-ball.midden.is-goal { left: 47%; top: 18%; animation: fly-midden-goal 0.55s ease-in; }
+.penalty-ball.rechts.is-goal { left: 67%; top: 26%; animation: fly-rechts-goal 0.55s ease-in; }
+.penalty-ball.links.is-save { left: 28%; top: 32%; animation: fly-links-save 0.5s ease-out; }
+.penalty-ball.midden.is-save { left: 46%; top: 26%; animation: fly-midden-save 0.5s ease-out; }
+.penalty-ball.rechts.is-save { left: 64%; top: 32%; animation: fly-rechts-save 0.5s ease-out; }
+@keyframes fly-links-goal { from { left: 47.2%; top: 59%; } to { left: 27%; top: 26%; } }
+@keyframes fly-midden-goal { from { left: 47.2%; top: 59%; } to { left: 47%; top: 18%; } }
+@keyframes fly-rechts-goal { from { left: 47.2%; top: 59%; } to { left: 67%; top: 26%; } }
+@keyframes fly-links-save { from { left: 47.2%; top: 59%; } to { left: 28%; top: 32%; } }
+@keyframes fly-midden-save { from { left: 47.2%; top: 59%; } to { left: 46%; top: 26%; } }
+@keyframes fly-rechts-save { from { left: 47.2%; top: 59%; } to { left: 64%; top: 32%; } }
+.penalty-caption {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  z-index: 5;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--ink);
+  font-weight: 750;
+  text-align: center;
+  line-height: 1.3;
+}
+.penalty-caption.is-save { box-shadow: inset 4px 0 0 var(--red); }
+.penalty-caption.is-goal { box-shadow: inset 4px 0 0 var(--ok); }
+.penalty-zones {
+  position: absolute;
+  left: 15%;
+  right: 15%;
+  top: 7%;
+  height: 40%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  z-index: 4;
+}
+.penalty-zones button {
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: 14px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0.08) 50%);
+  color: white;
+  font-weight: 800;
+  font-size: 1rem;
+  text-shadow: 0 1px 3px #000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 8px;
+}
+.penalty-zones button:disabled { opacity: 0; }
 .var-scene {
   position: relative;
   height: 180px;
