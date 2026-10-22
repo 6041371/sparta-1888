@@ -7,6 +7,7 @@ describe("vragen uit de bron", () => {
   it("heeft zeven ruimtes en het veld apart", () => {
     expect(QUIZ_LOCATIONS.map((location) => location.id)).toEqual([...ROOMS, "veld"]);
     for (const room of ROOMS) expect(questionsFor(room).length).toBeGreaterThan(0);
+    expect(questionsFor("kasteel").every((question) => question.kind === "choice")).toBe(true);
     expect(questionsFor("veld").map((question) => question.id)).toHaveLength(11);
   });
 
