@@ -487,7 +487,7 @@ describe("opslag van een spelevenement", () => {
 
     const decisions = await store.mutateTeam(
       login.token,
-      (event, team, at) => submitVar(event, team, variable!.code, ["buitenspel", "schwalbe", "correct"], at),
+      (event, team, at) => submitVar(event, team, variable!.code, ["buitenspel", "b", "correct"], at),
       now + 5,
     );
     expect(decisions.breakdown).toContain("3 van 3");

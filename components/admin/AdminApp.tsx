@@ -396,7 +396,7 @@ function GamesGuide({ event }: { event: OrganizerSnapshot["event"] }) {
     ["code", "Crack the Code", "Het dossier opent pas als het team de vier aanwijzingen heeft. Het antwoord staat alleen op de server."],
     ["photo", "Foto-opdracht", "Het team stuurt een foto. Jij beoordeelt creativiteit, samenwerking en uitvoering."],
     ["penalty", "Penaltyreeks", "Vijf schoten op het doel. De keeper duikt per poging links, midden of rechts."],
-    ["var", "VAR-check", "Korte getekende situaties. Het antwoord hoort bij wat het beeld laat zien."],
+    ["var", "VAR-check", "Drie beelden. Bij Sparta-RKC is de penalty onterecht."],
     ["spot", "Spot de verdachte", "Eén signalement, vijf verdachten. De volgorde wisselt."],
   ] as const;
   const testing = event.stations.find((station) => station.id === testingId) ?? null;

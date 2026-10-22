@@ -79,15 +79,16 @@ export const VAR_ROUNDS: VarRound[] = [
   },
   {
     id: "var-2",
-    prompt: "De speler gaat naar de grond. Er is geen contact met de tegenstander. Wat is de beslissing?",
-    scene: "schwalbe",
+    prompt: "De scheidsrechter geeft Sparta een penalty na een duel in het strafschopgebied. Wat is volgens jou de juiste beslissing?",
+    scene: "tackle",
+    video: "/var/sparta-rkc.mp4",
     options: [
-      { id: "schwalbe", label: "Schwalbe" },
-      { id: "overtreding", label: "Overtreding" },
-      { id: "penalty", label: "Penalty" },
+      { id: "a", label: "De penalty is terecht: de verdediger maakt een overtreding." },
+      { id: "b", label: "De penalty is onterecht: er is geen overtreding gemaakt." },
+      { id: "c", label: "De scheidsrechter moet eerst zelf de beelden bekijken via de VAR." },
     ],
-    answer: "schwalbe",
-    explanation: "Er is geen duel. De speler laat zich vallen zonder contact. Dat is een schwalbe.",
+    answer: "b",
+    explanation: "Geen penalty. In het duel is geen overtreding gemaakt, dus de penalty is onterecht.",
   },
   {
     id: "var-3",
