@@ -48,7 +48,6 @@ export function PenaltyShootout({
   const last = shots[shots.length - 1];
   const showDive = flying && last;
   const number = Math.min(shots.length + (flying || sent ? 0 : 1), 5);
-  const picked = showDive ? last.aim : null;
 
   function shoot(aim: Zone) {
     if (lockRef.current || sent || busy || shots.length >= 5) return;
@@ -98,17 +97,17 @@ export function PenaltyShootout({
             <p className={`penalty-stamp ${last.goal ? "is-goal" : "is-save"}`}>{last.goal ? "Goal" : "Gered"}</p>
           </>
         ) : null}
+        <div className="penalty-zones">
+          {ZONES.map((zone) => (
+            <button key={zone} type="button" aria-label={`Schiet ${LABELS[zone].toLowerCase()}`} disabled={flying || sent || busy} onClick={() => shoot(zone)}>
+              {LABELS[zone]}
+            </button>
+          ))}
+        </div>
       </div>
       <p className={`penalty-line${showDive ? (last.goal ? " is-goal" : " is-save") : ""}`} aria-live="polite">
-        {showDive ? last.line : "Kies een hoek. De keeper duikt pas als de bal weg is."}
+        {showDive ? last.line : "Tik links, midden of rechts in het doel."}
       </p>
-      <div className="penalty-choices">
-        {ZONES.map((zone) => (
-          <button key={zone} type="button" className={picked === zone ? "on" : ""} disabled={flying || sent || busy} onClick={() => shoot(zone)}>
-            {LABELS[zone]}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }
