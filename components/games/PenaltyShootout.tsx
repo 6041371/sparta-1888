@@ -86,8 +86,8 @@ export function PenaltyShootout({
         <img className="penalty-bg" src={showDive ? "/penalty/leeg.jpg" : "/penalty/start.jpg"} alt="" />
         {showDive ? (
           <>
-            <img className={`penalty-keeper ${last.keeper}`} src={`/penalty/keeper-${last.keeper}.png`} alt="" />
-            <img className={`penalty-ball ${last.aim} ${last.goal ? "is-goal" : "is-save"}`} src="/penalty/bal.png" alt="" />
+            <img className={`penalty-keeper ${last.keeper}`} src={`/penalty/keeper-${last.keeper}.png?v=2`} alt="" />
+            <img className={`penalty-ball ${last.aim} ${last.goal ? "is-goal" : "is-save"}`} src="/penalty/bal.png?v=2" alt="" />
           </>
         ) : null}
         {showDive ? <p className={`penalty-caption ${last.goal ? "is-goal" : "is-save"}`} aria-live="polite">{last.line}</p> : null}
