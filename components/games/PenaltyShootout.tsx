@@ -49,6 +49,7 @@ export function PenaltyShootout({
   const showDive = flying && last;
   const number = Math.min(shots.length + (flying || sent ? 0 : 1), 5);
   const picked = showDive ? last.aim : null;
+  const pose = showDive ? last.keeper : "staan";
 
   function shoot(aim: Zone) {
     if (lockRef.current || sent || busy || shots.length >= 5) return;
@@ -90,14 +91,10 @@ export function PenaltyShootout({
         })}
       </div>
       <div className={`penalty-scene${showDive ? " dive" : ""}`}>
-        <img className="penalty-bg" src={showDive ? "/penalty/leeg.jpg" : "/penalty/start.jpg"} alt="Doel met de keeper en de bal" />
-        {showDive ? (
-          <>
-            <img className={`penalty-keeper ${last.keeper}`} src={`/penalty/keeper-${last.keeper}.png?v=2`} alt="" />
-            <img className={`penalty-ball ${last.aim} ${last.goal ? "is-goal" : "is-save"}`} src="/penalty/bal.png?v=2" alt="" />
-            <p className={`penalty-stamp ${last.goal ? "is-goal" : "is-save"}`}>{last.goal ? "Goal" : "Gered"}</p>
-          </>
-        ) : null}
+        <img className="penalty-bg" src="/penalty/leeg.jpg" alt="" />
+        <img className={`penalty-keeper ${pose}`} src={`/penalty/keeper-${pose}.svg`} alt="" />
+        <img className={`penalty-ball${showDive ? ` ${last.aim} ${last.goal ? " is-goal" : " is-save"}` : " idle"}`} src="/penalty/bal.svg" alt="" />
+        {showDive ? <p className={`penalty-stamp ${last.goal ? "is-goal" : "is-save"}`}>{last.goal ? "Goal" : "Gered"}</p> : null}
       </div>
       <p className={`penalty-line${showDive ? (last.goal ? " is-goal" : " is-save") : ""}`} aria-live="polite">
         {showDive ? last.line : "Kies een hoek. De keeper duikt pas als de bal weg is."}

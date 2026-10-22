@@ -470,27 +470,29 @@ input[type="checkbox"] {
 }
 .penalty-bg { width: 100%; height: 100%; object-fit: cover; display: block; }
 .penalty-keeper, .penalty-ball { position: absolute; pointer-events: none; height: auto; }
-.penalty-keeper.midden { width: 13%; left: 43.5%; top: 13%; z-index: 2; }
-.penalty-keeper.links { width: 38%; left: 14%; top: 20%; z-index: 2; }
-.penalty-keeper.rechts { width: 38%; left: 48%; top: 20%; z-index: 2; }
+.penalty-keeper.staan { width: 22%; left: 39%; top: 10%; z-index: 2; }
+.penalty-keeper.midden { width: 20%; left: 40%; top: 2%; z-index: 2; }
+.penalty-keeper.links { width: 46%; left: 8%; top: 14%; z-index: 2; }
+.penalty-keeper.rechts { width: 46%; left: 46%; top: 14%; z-index: 2; }
 .penalty-ball {
-  width: 5.6%;
-  left: 47.2%;
-  top: 59%;
+  width: 5.2%;
+  left: 47.4%;
+  top: 58%;
   z-index: 3;
 }
-.penalty-ball.links.is-goal { left: 27%; top: 26%; animation: fly-links-goal 0.55s ease-in; }
-.penalty-ball.midden.is-goal { left: 47%; top: 18%; animation: fly-midden-goal 0.55s ease-in; }
-.penalty-ball.rechts.is-goal { left: 67%; top: 26%; animation: fly-rechts-goal 0.55s ease-in; }
-.penalty-ball.links.is-save { left: 28%; top: 32%; animation: fly-links-save 0.5s ease-out; }
-.penalty-ball.midden.is-save { left: 46%; top: 26%; animation: fly-midden-save 0.5s ease-out; }
-.penalty-ball.rechts.is-save { left: 64%; top: 32%; animation: fly-rechts-save 0.5s ease-out; }
-@keyframes fly-links-goal { from { left: 47.2%; top: 59%; } to { left: 27%; top: 26%; } }
-@keyframes fly-midden-goal { from { left: 47.2%; top: 59%; } to { left: 47%; top: 18%; } }
-@keyframes fly-rechts-goal { from { left: 47.2%; top: 59%; } to { left: 67%; top: 26%; } }
-@keyframes fly-links-save { from { left: 47.2%; top: 59%; } to { left: 28%; top: 32%; } }
-@keyframes fly-midden-save { from { left: 47.2%; top: 59%; } to { left: 46%; top: 26%; } }
-@keyframes fly-rechts-save { from { left: 47.2%; top: 59%; } to { left: 64%; top: 32%; } }
+.penalty-ball.idle { left: 47.4%; top: 58%; }
+.penalty-ball.links.is-goal { left: 22%; top: 18%; animation: fly-links-goal 0.55s ease-in; }
+.penalty-ball.midden.is-goal { left: 47%; top: 12%; animation: fly-midden-goal 0.55s ease-in; }
+.penalty-ball.rechts.is-goal { left: 72%; top: 18%; animation: fly-rechts-goal 0.55s ease-in; }
+.penalty-ball.links.is-save { left: 14%; top: 18%; animation: fly-links-save 0.5s ease-out; }
+.penalty-ball.midden.is-save { left: 47%; top: 4%; animation: fly-midden-save 0.5s ease-out; }
+.penalty-ball.rechts.is-save { left: 80%; top: 18%; animation: fly-rechts-save 0.5s ease-out; }
+@keyframes fly-links-goal { from { left: 47.4%; top: 58%; } to { left: 22%; top: 18%; } }
+@keyframes fly-midden-goal { from { left: 47.4%; top: 58%; } to { left: 47%; top: 12%; } }
+@keyframes fly-rechts-goal { from { left: 47.4%; top: 58%; } to { left: 72%; top: 18%; } }
+@keyframes fly-links-save { from { left: 47.4%; top: 58%; } to { left: 14%; top: 18%; } }
+@keyframes fly-midden-save { from { left: 47.4%; top: 58%; } to { left: 47%; top: 4%; } }
+@keyframes fly-rechts-save { from { left: 47.4%; top: 58%; } to { left: 80%; top: 18%; } }
 .penalty-stamp {
   position: absolute;
   top: 12px;
