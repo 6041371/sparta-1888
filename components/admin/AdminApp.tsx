@@ -22,11 +22,9 @@ const SECTIONS = [
   ["instellingen", "Evenement"],
   ["teams", "Teams"],
   ["ruimtes", "Ruimtes"],
-  ["stations", "Stations"],
   ["spellen", "Minigames"],
   ["qr", "QR-codes"],
   ["punten", "Punten"],
-  ["aanwijzingen", "Aanwijzingen"],
   ["finale", "Finale"],
   ["klassement", "Klassement"],
   ["fotos", "Foto's"],
@@ -57,7 +55,7 @@ export function AdminApp() {
   }, [router]);
 
   useEffect(() => {
-    const quiet = ["instellingen", "ruimtes", "stations", "punten", "finale", "aanwijzingen"].includes(section);
+    const quiet = ["instellingen", "ruimtes", "punten", "finale"].includes(section);
     if (quiet) return;
     const id = window.setInterval(() => {
       refresh(section === "fotos").catch(() => undefined);
@@ -125,11 +123,9 @@ export function AdminApp() {
       {section === "instellingen" ? <Settings key={event.id + event.name} event={event} busy={busy} run={run} /> : null}
       {section === "teams" ? <Teams event={event} busy={busy} run={run} /> : null}
       {section === "ruimtes" ? <Rooms event={event} busy={busy} run={run} /> : null}
-      {section === "stations" ? <Stations event={event} busy={busy} run={run} /> : null}
       {section === "spellen" ? <GamesGuide event={event} /> : null}
       {section === "qr" ? <QrSheet event={event} /> : null}
       {section === "punten" ? <Points event={event} busy={busy} run={run} /> : null}
-      {section === "aanwijzingen" ? <Clues event={event} busy={busy} run={run} /> : null}
       {section === "finale" ? <Finale event={event} busy={busy} run={run} /> : null}
       {section === "klassement" ? <AdminBoard rows={leaderboard} /> : null}
       {section === "fotos" ? <Photos event={event} busy={busy} run={run} reload={() => refresh(true)} /> : null}
@@ -158,7 +154,7 @@ function Overview({
     <div className="stack">
       <section className="stats">
         <article className="stat"><b>{event.teams.length}</b><span>teams</span></article>
-        <article className="stat"><b>{event.stations.filter((station) => station.visible).length}</b><span>open stations</span></article>
+        <article className="stat"><b>{event.stations.filter((station) => station.visible).length}</b><span>open spellen</span></article>
         <article className="stat"><b>{pending}</b><span>foto's te doen</span></article>
         <article className="stat"><b>{stuck.length}</b><span>teams zonder start</span></article>
       </section>
@@ -191,7 +187,7 @@ function Overview({
           <article key={team.id} className="paper spread">
             <div>
               <b>{team.name}</b>
-              <p className="small" style={{ margin: 0 }}>Aangemeld · {team.completedCount} opdrachten · {team.clueCount} aanwijzingen · zaak {team.finaleSolved ? "opgelost" : "open"}</p>
+              <p className="small" style={{ margin: 0 }}>Aangemeld · {team.completedCount} opdrachten · zaak {team.finaleSolved ? "opgelost" : "open"}</p>
               {team.writings.map((writing) => (
                 <p key={writing.prompt} className="small" style={{ margin: "8px 0 0" }}><b>{writing.prompt}</b><br />{writing.response}</p>
               ))}
@@ -382,98 +378,6 @@ function Alternative({
   );
 }
 
-function Stations({
-  event,
-  busy,
-  run,
-}: {
-  event: OrganizerSnapshot["event"];
-  busy: boolean;
-  run: (body: Record<string, unknown>, success: string) => Promise<void>;
-}) {
-  return (
-    <div className="stack">
-      <Button disabled={busy} onClick={() => void run({ action: "add-station", station: { name: "Extra station", roomId: event.rooms[0].id, game: "reaction", pointsMax: event.scoring.reactionMax, clueTitle: "Extra", clueText: "Pas deze aanwijzing aan." } }, "Station toegevoegd.")}>
-        Station toevoegen
-      </Button>
-      {event.stations.map((station) => (
-        <StationEditor key={station.id} station={station} event={event} busy={busy} run={run} />
-      ))}
-    </div>
-  );
-}
-
-function StationEditor({
-  station,
-  event,
-  busy,
-  run,
-}: {
-  station: OrganizerStation;
-  event: OrganizerSnapshot["event"];
-  busy: boolean;
-  run: (body: Record<string, unknown>, success: string) => Promise<void>;
-}) {
-  const [draft, setDraft] = useState(station);
-  const [confirm, setConfirm] = useState("");
-  return (
-    <form
-      className="paper stack"
-      onSubmit={(submit) => {
-        submit.preventDefault();
-        void run({ action: "save-station", station: draft }, "Station opgeslagen.");
-      }}
-    >
-      <div className="spread">
-        <h3 style={{ margin: 0 }}>{draft.name}</h3>
-        <span className="stamp">{draft.visible ? draft.code : "Verborgen"}</span>
-      </div>
-      <Field label="Naam" value={draft.name} onChange={(name) => setDraft({ ...draft, name })} />
-      <label className="field">
-        <span>Ruimte</span>
-        <select value={draft.roomId} onChange={(input) => setDraft({ ...draft, roomId: input.target.value })}>
-          {event.rooms.map((room) => <option key={room.id} value={room.id}>{room.name}</option>)}
-        </select>
-      </label>
-      <label className="field">
-        <span>Minigame</span>
-        <select value={draft.game} onChange={(input) => setDraft({ ...draft, game: input.target.value as OrganizerStation["game"] })}>
-          <option value="reaction">Reactietest</option>
-          <option value="memory">Geheugenspel</option>
-          <option value="code">Crack the Code</option>
-          <option value="photo">Foto-opdracht</option>
-          <option value="penalty">Penaltyreeks</option>
-          <option value="var">VAR-check</option>
-          <option value="spot">Spot de verdachte</option>
-        </select>
-      </label>
-      {draft.game === "code" ? (
-        <label className="field">
-          <span>Puzzel</span>
-          <select value={draft.puzzleId ?? "verdubbeling"} onChange={(input) => setDraft({ ...draft, puzzleId: input.target.value })}>
-                      <option value="dossier">Verborgen dossier</option>
-                      <option value="verdubbeling">Het scorebord</option>
-            <option value="kasteel">Verschoven letters</option>
-            <option value="dambord">Doelpunt of kaart</option>
-            <option value="optelsom">De vierde treffer</option>
-          </select>
-        </label>
-      ) : null}
-      <Field label="Puntenmaximum" type="number" value={draft.pointsMax} onChange={(value) => setDraft({ ...draft, pointsMax: Number(value) })} />
-      <Field label="Alternatieve locatie" value={draft.alternativeLocation} onChange={(alternativeLocation) => setDraft({ ...draft, alternativeLocation })} />
-      <label className="spread">
-        <span>Station aan</span>
-        <input type="checkbox" checked={draft.enabled} onChange={(input) => setDraft({ ...draft, enabled: input.target.checked })} />
-      </label>
-      <Button type="submit" disabled={busy}>Station opslaan</Button>
-      <Field label="Typ VERWIJDER om dit station te wissen" value={confirm} onChange={setConfirm} />
-      <Button kind="ghost" disabled={busy || confirm !== "VERWIJDER"} onClick={() => void run({ action: "delete-station", stationId: station.id, confirm }, "Station verwijderd.")}>
-        Verwijder station
-      </Button>
-    </form>
-  );
-}
-
 function GamesGuide({ event }: { event: OrganizerSnapshot["event"] }) {
   const [testingId, setTestingId] = useState<string | null>(null);
   const [playKey, setPlayKey] = useState(0);
@@ -643,52 +547,6 @@ function Points({
       {field("memoryAttemptPenalty", "Memory: aftrek per extra poging")}
       {field("memoryTimePenalty", "Memory: aftrek per 15 seconden")}
       <Button type="submit" disabled={busy}>Bewaar puntentelling</Button>
-    </form>
-  );
-}
-
-function Clues({
-  event,
-  busy,
-  run,
-}: {
-  event: OrganizerSnapshot["event"];
-  busy: boolean;
-  run: (body: Record<string, unknown>, success: string) => Promise<void>;
-}) {
-  return (
-    <div className="stack">
-      <p>Elk station levert één aanwijzing op, alleen na een geldige afronding. Pas de tekst aan als je de eindcode wijzigt.</p>
-      {event.stations.map((station) => (
-        <ClueEditor key={station.id} station={station} busy={busy} run={run} />
-      ))}
-    </div>
-  );
-}
-
-function ClueEditor({
-  station,
-  busy,
-  run,
-}: {
-  station: OrganizerStation;
-  busy: boolean;
-  run: (body: Record<string, unknown>, success: string) => Promise<void>;
-}) {
-  const [title, setTitle] = useState(station.clueTitle);
-  const [text, setText] = useState(station.clueText);
-  return (
-    <form
-      className="paper stack"
-      onSubmit={(submit) => {
-        submit.preventDefault();
-        void run({ action: "save-station", station: { ...station, clueTitle: title, clueText: text } }, "Aanwijzing opgeslagen.");
-      }}
-    >
-      <h3 style={{ margin: 0 }}>{station.name}</h3>
-      <Field label="Titel" value={title} onChange={setTitle} />
-      <Field label="Tekst" textarea value={text} onChange={setText} />
-      <Button type="submit" disabled={busy}>Bewaar aanwijzing</Button>
     </form>
   );
 }
@@ -893,7 +751,7 @@ function Results({
         }}
       >
         <h3>Nieuwe speelsessie</h3>
-        <p>Dit wist scores, aanwijzingen, foto's en de finalevoortgang. Teams, ruimtes en stations blijven. Typ RESET.</p>
+        <p>Dit wist scores, foto's en de finalevoortgang. Teams en ruimtes blijven. Typ RESET.</p>
         <Field label="Bevestiging" value={reset} onChange={setReset} />
         <Button type="submit" disabled={busy || reset !== "RESET"}>Zet het spel terug</Button>
       </form>
