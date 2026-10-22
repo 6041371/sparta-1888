@@ -3,7 +3,7 @@ import { tmpdir } from "os";
 import path from "path";
 import { describe, expect, it } from "vitest";
 import { EVIDENCE_ITEMS } from "@/lib/content/evidence";
-import { questionsFor } from "@/lib/content/quiz";
+import { FIELD_RETRY_MS, questionsFor } from "@/lib/content/quiz";
 import { toTeamSnapshot } from "@/lib/server/dto";
 import { DEFAULT_ANSWER } from "@/lib/server/defaults";
 import { PUZZLES } from "@/lib/server/puzzles";
@@ -274,6 +274,75 @@ describe("opslag van een spelevenement", () => {
     expect(snapshot.event.evidenceTotal).toBe(7);
     expect(snapshot.event.finaleOpen).toBe(false);
     expect(created.event.stations.find((station) => station.game === "photo")?.enabled).toBe(true);
+  });
+
+  it("verbergt het antwoord op het veld en opent de vraag na vijf minuten opnieuw", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "sparta-veld-"));
+    const store = createStore(path.join(dir, "store.json"));
+    const now = Date.now();
+    const created = await store.createEvent({
+      name: "Veld",
+      accessCode: "veld-1888",
+      teamCount: 1,
+      roomIds: ["bestuurskamer"],
+      now,
+    });
+    await store.mutateOrganizer(created.token, (event, at) => setStatus(event, "start", undefined, at), now + 1);
+    const login = await store.loginTeam(created.event.teams[0].joinCode, now + 2);
+    await store.mutateTeam(login.token, (event, team) => {
+      for (const question of questionsFor("bestuurskamer")) {
+        team.answers.push({ questionId: question.id, correct: true, points: 0, at: now, response: "x" });
+      }
+      const station = event.stations.find((item) => item.roomId === "bestuurskamer" && item.enabled);
+      if (!station) throw new Error("minigame ontbreekt");
+      team.completions.push({
+        stationId: station.id,
+        game: station.game,
+        points: 10,
+        completedAt: now,
+        breakdown: "test",
+        clueTitle: "",
+        clueText: "",
+        photo: null,
+      });
+    }, now + 3);
+    const wrong = await store.mutateTeam(login.token, (event, team, at) => submitQuiz(event, team, "vd-bogarde", "a", at), now + 4);
+    expect(wrong.correct).toBe(false);
+    expect(wrong.solution).toBe("");
+    expect(wrong.feedback.toLowerCase()).not.toContain("barcelona");
+    expect(wrong.retryAt).toBe(now + 4 + FIELD_RETRY_MS);
+    const early = await store.mutateTeam(login.token, (event, team, at) => submitQuiz(event, team, "vd-bogarde", "b", at), now + 5);
+    expect(early.points).toBe(0);
+    expect(early.solution).toBe("");
+    expect(early.feedback.toLowerCase()).not.toContain("barcelona");
+    const waiting = await store.teamContext(login.token, now + 6);
+    const card = toTeamSnapshot(waiting.event, waiting.team, now + 6).event.questions.find((question) => question.id === "vd-bogarde");
+    expect(card?.solved).toBe(false);
+    expect(card?.closed).toBe(false);
+    expect(card?.retryAt).toBe(now + 4 + FIELD_RETRY_MS);
+    expect(JSON.stringify(card)).not.toContain('"answer"');
+    const open = await store.mutateTeam(login.token, (event, team, at) => submitQuiz(event, team, "vd-vangaal", "speler", at), now + 7);
+    expect(open.solution).toBe("");
+    expect(open.feedback.toLowerCase()).not.toContain("trainer");
+    const again = await store.mutateTeam(
+      login.token,
+      (event, team, at) => submitQuiz(event, team, "vd-bogarde", "b", at),
+      now + 4 + FIELD_RETRY_MS,
+    );
+    expect(again.correct).toBe(true);
+    expect(again.points).toBe(100);
+    expect(again.feedback).toBe("Goed.");
+    expect(again.feedback.toLowerCase()).not.toContain("barcelona");
+    const repeat = await store.mutateTeam(
+      login.token,
+      (event, team, at) => submitQuiz(event, team, "vd-bogarde", "b", at),
+      now + 5 + FIELD_RETRY_MS,
+    );
+    expect(repeat.points).toBe(0);
+    expect(repeat.feedback).toBe("Deze vraag is al goed.");
+    const done = await store.teamContext(login.token, now + 6 + FIELD_RETRY_MS);
+    expect(done.team.answers.filter((item) => item.questionId === "vd-bogarde")).toHaveLength(1);
+    expect(toTeamSnapshot(done.event, done.team, now + 6 + FIELD_RETRY_MS).event.questions.find((question) => question.id === "vd-bogarde")?.solved).toBe(true);
   });
 
   it("geeft alle zeven bewijzen uit één kamer en bewaart ze als de kamers wijzigen", async () => {

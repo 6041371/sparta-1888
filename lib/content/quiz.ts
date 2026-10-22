@@ -1,3 +1,5 @@
+export const FIELD_RETRY_MS = 5 * 60 * 1000;
+
 export type QuizKind = "choice" | "open" | "creative";
 
 export interface QuizOption {

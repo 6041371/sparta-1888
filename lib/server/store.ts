@@ -37,7 +37,7 @@ import { EVIDENCE_ITEMS, distributeEvidence, finaleUnlocked, grantByCompletion }
 import { DOSSIER_PUZZLE_ID, DOSSIER_TEXT, dossierUnlocked, requiredEvidenceIds, scorePenalty, scoreSpot, scoreVar } from "@/lib/content/minigames";
 import type { Zone } from "@/lib/content/minigames";
 import { assignPlayers } from "@/lib/content/field";
-import { getQuestion, gradeQuiz, officialAnswer, questionsFor } from "@/lib/content/quiz";
+import { FIELD_RETRY_MS, getQuestion, gradeQuiz, officialAnswer, questionsFor, type QuizQuestion } from "@/lib/content/quiz";
 import { DEFAULT_FINALE, DEFAULT_SCORING, ROOM_CODES, ROOM_TEMPLATES, STATION_TEMPLATES, roomIdForEntryCode } from "@/lib/server/defaults";
 import { codeFeedback, getPuzzle, PUZZLES } from "@/lib/server/puzzles";
 
@@ -1144,6 +1144,59 @@ export function markField(team: Team) {
   team.fieldSeen = true;
 }
 
+function submitFieldQuiz(event: GameEvent, team: Team, question: QuizQuestion, text: string, now: number) {
+  const existing = team.answers.find((item) => item.questionId === question.id);
+  if (existing && existing.points > 0) {
+    return { correct: true, points: 0, already: true, feedback: "Deze vraag is al goed.", solution: "", retryAt: null };
+  }
+  if (existing && now < existing.at + FIELD_RETRY_MS) {
+    return {
+      correct: false,
+      points: 0,
+      already: true,
+      feedback: "De tijd is nog niet om.",
+      solution: "",
+      retryAt: existing.at + FIELD_RETRY_MS,
+    };
+  }
+  const block = playBlockReason(event, now);
+  if (block) throw new GameError(block, 403);
+  const graded = gradeQuiz(question, text);
+  const response = text.slice(0, 2000);
+  if (!graded.correct) {
+    if (existing) {
+      existing.correct = false;
+      existing.points = 0;
+      existing.at = now;
+      existing.response = response;
+    } else {
+      team.answers.push({ questionId: question.id, correct: false, points: 0, at: now, response });
+    }
+    return {
+      correct: false,
+      points: 0,
+      already: false,
+      feedback: "Dat klopt niet. Over vijf minuten mogen jullie het opnieuw proberen.",
+      solution: "",
+      retryAt: now + FIELD_RETRY_MS,
+    };
+  }
+  const points = event.scoring.codePoints;
+  if (existing) {
+    existing.correct = true;
+    existing.points = points;
+    existing.at = now;
+    existing.response = response;
+  } else {
+    team.answers.push({ questionId: question.id, correct: true, points, at: now, response });
+  }
+  syncEvidence(event, team);
+  const next = withScore(team, now);
+  team.score = next.score;
+  team.lastScoreAt = next.lastScoreAt;
+  return { correct: true, points, already: false, feedback: "Goed.", solution: "", retryAt: null };
+}
+
 export function submitQuiz(event: GameEvent, team: Team, questionId: string, response: unknown, now: number) {
   const question = getQuestion(questionId);
   if (!question) throw new GameError("Deze vraag hoort niet bij het spel.", 404);
@@ -1157,6 +1210,7 @@ export function submitQuiz(event: GameEvent, team: Team, questionId: string, res
     if (!room?.available) throw new GameError("Deze ruimte is vandaag niet beschikbaar.", 403);
     if (!team.visitedRooms.includes(question.locationId)) throw new GameError("Scan eerst de QR-code van deze ruimte.", 403);
   }
+  if (question.locationId === "veld") return submitFieldQuiz(event, team, question, text, now);
   const existing = team.answers.find((item) => item.questionId === question.id);
   if (existing) {
     return {
@@ -1165,6 +1219,7 @@ export function submitQuiz(event: GameEvent, team: Team, questionId: string, res
       already: true,
       feedback: existing.points > 0 ? "Deze vraag is al beloond." : "Deze vraag is al gecontroleerd.",
       solution: officialAnswer(question),
+      retryAt: null,
     };
   }
   const block = playBlockReason(event, now);
@@ -1172,10 +1227,10 @@ export function submitQuiz(event: GameEvent, team: Team, questionId: string, res
   const graded = gradeQuiz(question, text);
   const solution = officialAnswer(question);
   if (!graded.correct) {
-    if (question.kind === "creative") return { correct: false, points: 0, already: false, feedback: graded.feedback, solution: "" };
+    if (question.kind === "creative") return { correct: false, points: 0, already: false, feedback: graded.feedback, solution: "", retryAt: null };
     team.answers.push({ questionId: question.id, correct: false, points: 0, at: now, response: text.slice(0, 2000) });
     syncEvidence(event, team);
-    return { correct: false, points: 0, already: false, feedback: `Dat klopt niet. Het goede antwoord is: ${solution}.`, solution };
+    return { correct: false, points: 0, already: false, feedback: `Dat klopt niet. Het goede antwoord is: ${solution}.`, solution, retryAt: null };
   }
   const points = event.scoring.codePoints;
   team.answers.push({
@@ -1190,7 +1245,7 @@ export function submitQuiz(event: GameEvent, team: Team, questionId: string, res
   team.score = next.score;
   team.lastScoreAt = next.lastScoreAt;
   const feedback = question.kind === "creative" ? graded.feedback : `Goed. ${solution}`;
-  return { correct: true, points, already: false, feedback, solution };
+  return { correct: true, points, already: false, feedback, solution, retryAt: null };
 }
 
 export function submitFinale(

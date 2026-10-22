@@ -1,10 +1,34 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "@/lib/client/api";
 import type { PublicFieldPlayer, PublicQuizQuestion } from "@/lib/types";
 import { useTeam } from "@/components/team/TeamShell";
 import { Banner, Button, Modal } from "@/components/ui";
+
+function useRetryLeft(retryAt: number | null, serverNow: number) {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    if (!retryAt) return;
+    const skew = Date.now() - serverNow;
+    const id = window.setInterval(() => {
+      setTick((value) => value + 1);
+      if (retryAt - (Date.now() - skew) <= 0) window.clearInterval(id);
+    }, 250);
+    return () => window.clearInterval(id);
+  }, [retryAt, serverNow]);
+  if (!retryAt) return 0;
+  const skew = Date.now() - serverNow;
+  void tick;
+  return Math.max(0, retryAt - (Date.now() - skew));
+}
+
+function clock(ms: number) {
+  const total = Math.ceil(ms / 1000);
+  const minutes = Math.floor(total / 60);
+  const seconds = total % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
 
 export function FieldBoard() {
   const { state, refresh } = useTeam();
@@ -12,7 +36,13 @@ export function FieldBoard() {
   const [pick, setPick] = useState("");
   const [text, setText] = useState("");
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+  const [lockUntil, setLockUntil] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
+  const question: PublicQuizQuestion | undefined = state && player
+    ? state.event.questions.find((item) => item.id === player.questionId)
+    : undefined;
+  const retryAt = Math.max(question?.retryAt ?? 0, lockUntil ?? 0) || null;
+  const retryLeft = useRetryLeft(retryAt, state?.serverNow ?? 0);
 
   if (!state) return null;
   const location = state.event.locations.find((item) => item.id === "veld");
@@ -41,20 +71,19 @@ export function FieldBoard() {
     );
   }
 
-  const question: PublicQuizQuestion | undefined = player
-    ? state.event.questions.find((item) => item.id === player.questionId)
-    : undefined;
-
   async function check() {
-    if (!question) return;
+    if (!question || retryLeft > 0) return;
     setBusy(true);
     try {
-      const result = await api<{ outcome: { correct: boolean; feedback: string } }>("/api/team", {
+      const result = await api<{ outcome: { correct: boolean; feedback: string; retryAt?: number | null } }>("/api/team", {
         action: "quiz",
         questionId: question.id,
         response: question.kind === "choice" ? pick : text,
       });
-      setNote({ ok: result.outcome.correct, text: result.outcome.feedback });
+      setLockUntil(result.outcome.correct ? null : result.outcome.retryAt ?? null);
+      setNote({ ok: result.outcome.correct, text: result.outcome.correct ? "Goed." : "Dat klopt nog niet." });
+      setPick("");
+      setText("");
       await refresh();
     } catch (caught) {
       setNote({ ok: false, text: caught instanceof Error ? caught.message : "Het antwoord kon niet worden gecontroleerd." });
@@ -73,27 +102,36 @@ export function FieldBoard() {
       <div className="pitch">
         <img src="/veld-leeg.png" alt="" />
         {state.event.fieldPlayers.filter((item) => item.unlocked).map((item) => (
-          <button key={item.questionId} type="button" className={`pitch-player ${item.solved ? "done" : ""}`} style={{ top: item.top, left: item.left }} onClick={() => { setPlayer(item); setPick(""); setText(""); setNote(null); }}>
+          <button key={item.questionId} type="button" className={`pitch-player ${item.solved ? "done" : ""}`} style={{ top: item.top, left: item.left }} onClick={() => { setPlayer(item); setPick(""); setText(""); setNote(null); setLockUntil(null); }}>
             <img src={item.image} alt="" />
             <span>{item.name}</span>
           </button>
         ))}
       </div>
-      <p className="small">Tik een speler aan voor zijn vraag. Wie nog niet vrij is, staat niet op het veld.</p>
+      <p className="small">Tik een speler aan voor zijn vraag. Een fout antwoord kan na vijf minuten opnieuw, tot het goed is. Wie nog niet vrij is, staat niet op het veld.</p>
       {player && question ? (
         <Modal title={player.name} onClose={() => setPlayer(null)}>
           <p className="question-prompt">{question.prompt}</p>
-          {question.closed ? <Banner tone={question.solved ? "ok" : "warn"}>Deze vraag is al gecontroleerd.</Banner> : question.kind === "choice" ? (
-            <div className="stack">
-              {question.options.map((option) => (
-                <button key={option.id} type="button" className={`paper suspect ${pick === option.id ? "on" : ""}`} onClick={() => setPick(option.id)}>{option.label}</button>
-              ))}
-            </div>
+          {question.solved ? <Banner tone="ok">Goed.</Banner> : retryLeft > 0 ? (
+            <>
+              <Banner tone="warn">Dat klopt nog niet.</Banner>
+              <p className="retry-clock" role="timer" aria-live="off"><small>Opnieuw over</small>{clock(retryLeft)}</p>
+            </>
           ) : (
-            <textarea rows={3} value={text} onChange={(input) => setText(input.target.value)} placeholder="Jullie antwoord" />
+            <>
+              {question.kind === "choice" ? (
+                <div className="stack">
+                  {question.options.map((option) => (
+                    <button key={option.id} type="button" className={`paper suspect ${pick === option.id ? "on" : ""}`} onClick={() => setPick(option.id)}>{option.label}</button>
+                  ))}
+                </div>
+              ) : (
+                <textarea rows={3} value={text} onChange={(input) => setText(input.target.value)} placeholder="Jullie antwoord" />
+              )}
+              {note && !note.ok ? <Banner tone="warn">{note.text}</Banner> : null}
+              <Button full disabled={busy || (question.kind === "choice" ? !pick : !text.trim())} onClick={() => void check()}>{busy ? "Controleren…" : "Controleer antwoord"}</Button>
+            </>
           )}
-          {note ? <Banner tone={note.ok ? "ok" : "warn"}>{note.text}</Banner> : null}
-          {question.closed ? null : <Button full disabled={busy || (question.kind === "choice" ? !pick : !text.trim())} onClick={() => void check()}>{busy ? "Controleren…" : "Controleer antwoord"}</Button>}
         </Modal>
       ) : null}
     </div>

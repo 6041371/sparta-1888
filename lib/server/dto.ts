@@ -1,7 +1,7 @@
 import { EVIDENCE_ITEMS, evidenceProgress, finaleUnlocked } from "@/lib/content/evidence";
 import { DOSSIER_PUZZLE_ID, dossierUnlocked, requiredEvidenceIds } from "@/lib/content/minigames";
 import { assignPlayers, FIELD_PLAYERS } from "@/lib/content/field";
-import { QUIZ_LOCATIONS, getQuestion, publicQuestion, questionsFor } from "@/lib/content/quiz";
+import { FIELD_RETRY_MS, QUIZ_LOCATIONS, getQuestion, publicQuestion, questionsFor } from "@/lib/content/quiz";
 import { GAME_SUMMARIES, GAME_TITLES } from "@/lib/copy";
 import { displayScore, locationLabel, projectClock, rankTeams, stationVisible, visibleStations } from "@/lib/game/logic";
 import type {
@@ -125,7 +125,15 @@ export function toTeamSnapshot(event: GameEvent, team: Team, now: number): TeamS
     if (!card?.available || !card.visited) return [];
     return questionsFor(location.id)
       .filter((question) => location.id !== "veld" || unlockedPlayers.has(question.id))
-      .map((question) => publicQuestion(question, solvedIds.has(question.id), closedIds.has(question.id)));
+      .map((question) => {
+        const solved = solvedIds.has(question.id);
+        const previous = answers.find((item) => item.questionId === question.id);
+        const field = location.id === "veld";
+        return {
+          ...publicQuestion(question, solved, field ? solved : closedIds.has(question.id)),
+          retryAt: field && previous && !solved ? previous.at + FIELD_RETRY_MS : null,
+        };
+      });
   });
   const found = new Set(current.collectedEvidenceIds ?? []);
   const progress = evidenceProgress(current.collectedEvidenceIds ?? []);

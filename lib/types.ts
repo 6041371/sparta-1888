@@ -255,6 +255,7 @@ export interface PublicQuizQuestion {
   minLines: number;
   solved: boolean;
   closed: boolean;
+  retryAt?: number | null;
 }
 
 export interface PublicLocation {
