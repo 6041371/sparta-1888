@@ -259,6 +259,14 @@ export interface PublicQuizQuestion {
   retryAt?: number | null;
 }
 
+export interface PublicMinigame {
+  title: string;
+  summary: string;
+  done: boolean;
+  code: string | null;
+  locked: string | null;
+}
+
 export interface PublicLocation {
   id: string;
   name: string;
@@ -273,6 +281,7 @@ export interface PublicLocation {
   minigameSummary: string | null;
   minigameDone: boolean;
   minigameCode: string | null;
+  minigames: PublicMinigame[];
   evidenceIds: string[];
 }
 

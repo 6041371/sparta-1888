@@ -49,8 +49,8 @@ describe("minigames", () => {
     const answers = VAR_ROUNDS.map((round) => round.answer);
     expect(scoreVar(answers, 90).correct).toBe(3);
     expect(scoreVar(["geen", "b", "correct"], 90).correct).toBe(2);
-    expect(scoreSpot("thomas", 100).correct).toBe(true);
-    expect(scoreSpot("bosman", 100).correct).toBe(false);
-    expect(scoreSpot("thomas", 100).points).toBeGreaterThan(scoreSpot("marco", 100).points);
+    expect(scoreSpot("cam-5", 100).correct).toBe(true);
+    expect(scoreSpot("cam-1", 100).correct).toBe(false);
+    expect(scoreSpot("cam-5", 100).points).toBeGreaterThan(scoreSpot("cam-1", 100).points);
   });
 });

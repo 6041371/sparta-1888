@@ -4,8 +4,10 @@ import { assignPlayers, FIELD_PLAYERS } from "@/lib/content/field";
 import { FIELD_RETRY_MS, QUIZ_LOCATIONS, getQuestion, publicQuestion, questionsFor } from "@/lib/content/quiz";
 import { GAME_SUMMARIES, GAME_TITLES } from "@/lib/copy";
 import { displayScore, locationLabel, projectClock, rankTeams, stationVisible, visibleStations } from "@/lib/game/logic";
+import { stationHomeRoom } from "@/lib/server/defaults";
 import type {
   GameEvent,
+  GameType,
   LedgerLine,
   OrganizerSnapshot,
   OrganizerStation,
@@ -16,6 +18,23 @@ import type {
 import { getPuzzle, publicPuzzle } from "@/lib/server/puzzles";
 
 const FINALE_LEAK = new Set(["Finale", "Onjuiste verdachte", "Foute eindcode"]);
+
+function gameOrder(game: GameType) {
+  if (game === "spot") return 0;
+  if (game === "code") return 2;
+  return 1;
+}
+
+function lockReason(game: GameType, spotDone: boolean, codeOpen: boolean) {
+  if (game === "code" && !codeOpen) return "Deze code gaat open als jullie de gevraagde aanwijzingen hebben.";
+  if (game !== "spot" && game !== "code" && !spotDone) return "Speel eerst Spot de verdachte.";
+  return null;
+}
+
+function codeHome(event: GameEvent) {
+  const station = event.stations.find((item) => item.puzzleId === DOSSIER_PUZZLE_ID && item.enabled);
+  return station ? stationHomeRoom(station.id, station.roomId) : null;
+}
 
 function finaleLeak(team: Team) {
   return (team.finalePoints ?? 0) + (team.adjustments ?? []).reduce((sum, item) => sum + (FINALE_LEAK.has(item.reason) ? item.points : 0), 0);
@@ -100,8 +119,23 @@ export function toTeamSnapshot(event: GameEvent, team: Team, now: number): TeamS
     const questions = questionsFor(location.id);
     const room = event.rooms.find((item) => item.id === location.id);
     const field = location.id === "veld";
-    const station = event.stations.find((item) => item.roomId === location.id && item.enabled);
-    const minigameDone = !station || current.completions.some((item) => item.stationId === station.id);
+    const hosted = event.stations
+      .filter((item) => item.roomId === location.id && item.enabled)
+      .sort((a, b) => gameOrder(a.game) - gameOrder(b.game) || a.name.localeCompare(b.name));
+    const blocking = hosted.filter((item) => item.game !== "code");
+    const spotDone = event.stations
+      .filter((item) => item.enabled && item.game === "spot")
+      .every((item) => current.completions.some((completion) => completion.stationId === item.id));
+    const codeOpen = dossierUnlocked(requiredEvidenceIds(assignments, codeHome(event)), [...(current.collectedEvidenceIds ?? [])]);
+    const minigames = hosted.map((item) => ({
+      title: GAME_TITLES[item.game],
+      summary: GAME_SUMMARIES[item.game],
+      done: current.completions.some((completion) => completion.stationId === item.id),
+      code: field || visited.includes(location.id) ? item.code : null,
+      locked: lockReason(item.game, spotDone, codeOpen),
+    }));
+    const pending = minigames.find((item) => !item.done) ?? minigames[0] ?? null;
+    const minigameDone = blocking.every((item) => current.completions.some((completion) => completion.stationId === item.id));
     const closedCount = questions.filter((question) => closedIds.has(question.id)).length;
     const complete = !field && Boolean(room?.available) && questions.length > 0 && closedCount === questions.length && minigameDone;
     return {
@@ -114,10 +148,11 @@ export function toTeamSnapshot(event: GameEvent, team: Team, now: number): TeamS
       solvedCount: questions.filter((question) => solvedIds.has(question.id)).length,
       closedCount,
       complete,
-      minigameTitle: station ? GAME_TITLES[station.game] : null,
-      minigameSummary: station ? GAME_SUMMARIES[station.game] : null,
+      minigameTitle: pending?.title ?? null,
+      minigameSummary: pending?.summary ?? null,
       minigameDone,
-      minigameCode: station && (field || visited.includes(location.id)) ? station.code : null,
+      minigameCode: pending?.code ?? null,
+      minigames,
       evidenceIds: grantedEvidenceIds(current.evidenceGrants?.[location.id], assignments[location.id] ?? []),
     };
   });
@@ -219,7 +254,7 @@ export function toTeamSnapshot(event: GameEvent, team: Team, now: number): TeamS
 
 function codeGateFor(event: GameEvent, team: Team, found: Set<string>) {
   const station = event.stations.find((item) => item.puzzleId === DOSSIER_PUZZLE_ID && item.enabled) ?? null;
-  const requiredIds = requiredEvidenceIds(event.evidenceAssignments ?? {}, station?.roomId ?? null);
+  const requiredIds = requiredEvidenceIds(event.evidenceAssignments ?? {}, station ? stationHomeRoom(station.id, station.roomId) : null);
   return {
     requiredIds,
     foundIds: requiredIds.filter((id) => found.has(id)),

@@ -1,5 +1,5 @@
 import { CULPRIT_ID, SUSPECTS } from "@/lib/copy";
-import { roomIdForEntryCode } from "@/lib/server/defaults";
+import { ROOM_TEMPLATES, STATION_TEMPLATES, roomIdForEntryCode } from "@/lib/server/defaults";
 import type {
   Completion,
   EventStatus,
@@ -98,6 +98,43 @@ export function locationLabel(station: Station, rooms: Room[]): string {
 
 export function visibleStations(stations: Station[], rooms: Room[]): Station[] {
   return stations.filter((station) => stationVisible(station, rooms));
+}
+
+export function placeStations(stations: Station[], rooms: Room[]) {
+  const open = ROOM_TEMPLATES.map((room) => room.id).filter((id) => rooms.some((room) => room.id === id && room.available));
+  if (open.length === 0) return;
+  const knownIds = new Set(STATION_TEMPLATES.map((item) => item.id));
+  const known = stations.filter((station) => knownIds.has(station.id) && station.enabled);
+  const spot = known.find((station) => station.game === "spot");
+  const code = known.find((station) => station.game === "code");
+  const rest = known.filter((station) => station !== spot && station !== code);
+
+  if (open.length >= known.length) {
+    const used = new Set<string>();
+    if (spot) {
+      spot.roomId = open[0];
+      used.add(open[0]);
+    }
+    if (code) {
+      code.roomId = open.includes("kasteel") && !used.has("kasteel") ? "kasteel" : open.find((id) => !used.has(id)) ?? open[open.length - 1];
+      used.add(code.roomId);
+    }
+    const free = open.filter((id) => !used.has(id));
+    rest.forEach((station, index) => {
+      station.roomId = free[index] ?? open[index % open.length];
+    });
+    return;
+  }
+
+  const buckets = new Map<string, Station[]>(open.map((id) => [id, []]));
+  if (spot) buckets.get(open[0])!.push(spot);
+  if (code) buckets.get(open.includes("kasteel") ? "kasteel" : open[open.length - 1])!.push(code);
+  rest.forEach((station, index) => {
+    buckets.get(open[index % open.length])!.push(station);
+  });
+  for (const [roomId, list] of buckets) {
+    for (const station of list) station.roomId = roomId;
+  }
 }
 
 export interface ScoreResult {

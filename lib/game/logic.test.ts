@@ -5,6 +5,7 @@ import {
   applyHint,
   formatRemaining,
   parseStationCode,
+  placeStations,
   scanTarget,
   projectClock,
   rankTeams,
@@ -14,7 +15,7 @@ import {
   warningLevel,
 } from "@/lib/game/logic";
 import type { Completion, Room, Station, Team } from "@/lib/types";
-import { DEFAULT_SCORING } from "@/lib/server/defaults";
+import { DEFAULT_SCORING, ROOM_TEMPLATES, STATION_TEMPLATES } from "@/lib/server/defaults";
 
 function team(partial: Partial<Team> = {}): Team {
   return {
@@ -254,5 +255,21 @@ describe("timer, finale en ranglijst", () => {
     };
     expect(stationVisible(hidden, rooms)).toBe(false);
     expect(stationVisible({ ...hidden, alternativeLocation: "Gang bij de skybox" }, rooms)).toBe(true);
+  });
+
+  it("zet spot op de eerste open kamer en houdt alle zeven spellen als kamers dicht zijn", () => {
+    const stations = STATION_TEMPLATES.map((template) => ({ ...template, code: "ABCDEF" }));
+    const rooms = ROOM_TEMPLATES.map((room) => ({ ...room }));
+    placeStations(stations, rooms);
+    expect(stations.find((station) => station.game === "spot")?.roomId).toBe("bestuurskamer");
+    expect(stations.find((station) => station.game === "code")?.roomId).toBe("kasteel");
+    expect(new Set(stations.map((station) => station.roomId)).size).toBe(7);
+
+    for (const room of rooms) room.available = room.id === "museum" || room.id === "perskamer";
+    placeStations(stations, rooms);
+    expect(stations.every((station) => station.roomId === "perskamer" || station.roomId === "museum")).toBe(true);
+    expect(stations.find((station) => station.game === "spot")?.roomId).toBe("perskamer");
+    expect(stations.find((station) => station.game === "code")?.roomId).toBe("museum");
+    expect(new Set(stations.map((station) => station.game)).size).toBe(7);
   });
 });

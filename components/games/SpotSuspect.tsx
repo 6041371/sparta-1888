@@ -1,18 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { SPOT_CLUE } from "@/lib/content/minigames";
-import { SUSPECTS } from "@/lib/copy";
+import { useState } from "react";
+import { SPOT_BOARD, SPOT_CAMS, SPOT_CLUE } from "@/lib/content/minigames";
 import { Button } from "@/components/ui";
-
-function shuffled<T>(items: readonly T[]): T[] {
-  const next = [...items];
-  for (let index = next.length - 1; index > 0; index -= 1) {
-    const swap = Math.floor(Math.random() * (index + 1));
-    [next[index], next[swap]] = [next[swap], next[index]];
-  }
-  return next;
-}
 
 export function SpotSuspect({
   busy,
@@ -24,17 +14,16 @@ export function SpotSuspect({
   const [started, setStarted] = useState(false);
   const [picked, setPicked] = useState("");
   const [sent, setSent] = useState(false);
-  const cards = useMemo(() => shuffled(SUSPECTS), []);
 
   if (!started) {
     return (
       <div className="stack">
         <article className="paper stack">
           <p className="kicker">Spot de verdachte</p>
-          <h2 className="display">Eén signalement</h2>
-          <p>Een getuige zag iemand op de avond van de verdwijning. Kies welke van de vijf verdachten bij dat signalement past.</p>
+          <h2 className="display">Vijf camera's</h2>
+          <p>Op vijf camera's loopt iemand voorbij. Onder elk beeld staat het signalement. Kies wie er het meest verdacht uitziet.</p>
         </article>
-        <Button full disabled={busy} onClick={() => setStarted(true)}>Toon het signalement</Button>
+        <Button full disabled={busy} onClick={() => setStarted(true)}>Toon de beelden</Button>
       </div>
     );
   }
@@ -42,13 +31,13 @@ export function SpotSuspect({
   return (
     <div className="stack">
       <article className="paper stack">
-        <p className="kicker">Getuige</p>
-        <p className="serif">{SPOT_CLUE}</p>
+        <p className="kicker">Beveiliging</p>
+        <h2 className="display">{SPOT_CLUE}</h2>
+        <img className="spot-board" src={SPOT_BOARD} alt="Vijf camerabeelden met de signalementen eronder" />
       </article>
-      {cards.map((suspect) => (
-        <button key={suspect.id} type="button" className={`paper stack suspect ${picked === suspect.id ? "on" : ""}`} disabled={sent} onClick={() => setPicked(suspect.id)}>
-          <b>{suspect.name}</b>
-          <span className="small">{suspect.role}</span>
+      {SPOT_CAMS.map((cam) => (
+        <button key={cam.id} type="button" className={`paper suspect ${picked === cam.id ? "on" : ""}`} disabled={sent} onClick={() => setPicked(cam.id)}>
+          <b>{cam.label}</b>
         </button>
       ))}
       <Button

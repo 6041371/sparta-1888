@@ -38,9 +38,11 @@ export function LocationQuiz({ locationId }: { locationId: string }) {
   }
 
     const questions = state.event.questions.filter((question) => question.locationId === locationId);
+  const games = location.minigames ?? [];
+  const gameLeft = games.some((game) => !game.done);
   const firstOpen = Math.max(0, questions.findIndex((question) => !question.closed));
   const started = questions.some((question) => question.closed);
-  const view = phase ?? (questions.every((question) => question.closed) ? (location.minigameTitle && !location.minigameDone ? "game" : "proof") : started ? "ask" : "intro");
+  const view = phase ?? (questions.every((question) => question.closed) ? (gameLeft ? "game" : "proof") : started ? "ask" : "intro");
   const cursor = phase === null ? firstOpen : index;
   const question = questions[cursor];
   const found = state.event.evidence.filter((item) => location.evidenceIds.includes(item.id) && item.found);
@@ -74,7 +76,7 @@ export function LocationQuiz({ locationId }: { locationId: string }) {
       setPhase("ask");
       return;
     }
-    if (location?.minigameTitle && !location.minigameDone) setPhase("game");
+    if (location && (location.minigames ?? []).some((game) => !game.done)) setPhase("game");
     else setPhase("proof");
   }
 
@@ -85,7 +87,7 @@ export function LocationQuiz({ locationId }: { locationId: string }) {
         <article className="paper stack">
           <h1 className="display">{location.name}</h1>
           <p className="serif">{location.intro}</p>
-          <p>In deze kamer liggen {location.evidenceIds.length} {location.evidenceIds.length === 1 ? "bewijsstuk" : "bewijsstukken"}. Die komen vrij als de vragen af zijn{location.minigameTitle ? " en het spel daarna is gespeeld" : ""}.</p>
+          <p>In deze kamer liggen {location.evidenceIds.length} {location.evidenceIds.length === 1 ? "bewijsstuk" : "bewijsstukken"}. Die komen vrij als de vragen af zijn{games.length ? ` en ${games.length === 1 ? "het spel daarna is" : "de spellen daarna zijn"} gespeeld` : ""}.</p>
           <Button full onClick={() => { setIndex(firstOpen); setPhase("ask"); }}>Begin met vraag 1</Button>
         </article>
       ) : null}
@@ -114,25 +116,31 @@ export function LocationQuiz({ locationId }: { locationId: string }) {
           <span className="stamp">{note?.ok ? "Goed" : "Nog niet"}</span>
           <h1 className="display">{note?.ok ? "Dat klopt" : "Helaas"}</h1>
           {note ? <Banner tone={note.ok ? "ok" : "warn"}>{note.text}</Banner> : null}
-          <Button full onClick={next}>{cursor + 1 < questions.length && questions[cursor + 1] && !questions[cursor + 1].closed ? "Volgende vraag" : location.minigameTitle && !location.minigameDone ? "Naar het spel" : "Bekijk het bewijs"}</Button>
+          <Button full onClick={next}>{cursor + 1 < questions.length && questions[cursor + 1] && !questions[cursor + 1].closed ? "Volgende vraag" : gameLeft ? "Naar het spel" : "Bekijk het bewijs"}</Button>
         </article>
       ) : null}
-      {view === "game" && location.minigameTitle ? (
+      {view === "game" && games.length > 0 ? (
         <article className="paper stack">
           <p className="kicker">Kort spel</p>
-          <h1 className="display">{location.minigameTitle}</h1>
-          <p className="serif">{location.minigameSummary}</p>
-          <p>Dit is geen extra kamer. Het hoort bij {location.name}. Jullie spelen het één keer.</p>
-          {location.minigameDone ? <Banner tone="ok">Dit spel is al gespeeld.</Banner> : null}
-          {location.minigameCode && !location.minigameDone ? <Link className="btn primary full" href={`/spel/station/${location.minigameCode}`}>Starten</Link> : null}
-          {location.minigameDone ? <Button full onClick={() => setPhase("proof")}>Bekijk het bewijs</Button> : null}
+          <h1 className="display">{games.length === 1 ? games[0].title : `${games.length} spellen`}</h1>
+          <p>Dit hoort bij {location.name}. Jullie spelen elk spel één keer. Spot de verdachte is het eerste spel. Crack the Code wacht op de aanwijzingen.</p>
+          {games.map((game) => (
+            <div key={game.title} className="stack">
+              <h2 className="serif">{game.title}</h2>
+              <p>{game.summary}</p>
+              {game.done ? <Banner tone="ok">Dit spel is al gespeeld.</Banner> : null}
+              {!game.done && game.locked ? <Banner>{game.locked}</Banner> : null}
+              {!game.done && !game.locked && game.code ? <Link className="btn primary full" href={`/spel/station/${game.code}`}>Starten</Link> : null}
+            </div>
+          ))}
+          <Button full onClick={() => setPhase("proof")}>Bekijk het bewijs</Button>
         </article>
       ) : null}
       {view === "proof" ? (
         <article className="paper stack">
           <p className="kicker">Zaakmap</p>
           <h1 className="display">{location.complete ? "Kamer afgerond" : "Bijna"}</h1>
-          {location.complete ? <p>Deze kamer leverde {found.length} van de {location.evidenceIds.length} toegewezen bewijsstukken.</p> : <p>Rond eerst alle vragen af{location.minigameTitle ? " en het korte spel" : ""}. Dan komen de bewijsstukken in de zaakmap.</p>}
+          {location.complete ? <p>Deze kamer leverde {found.length} van de {location.evidenceIds.length} toegewezen bewijsstukken.</p> : <p>Rond eerst alle vragen af{games.some((game) => game.title !== "Crack the Code") ? " en de korte spellen" : ""}. Dan komen de bewijsstukken in de zaakmap.</p>}
           {found.map((item) => (
             <div key={item.id} className="clue">
               <p className="kicker">Bewijsstuk {item.order}</p>

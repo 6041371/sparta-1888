@@ -48,6 +48,7 @@ export function PenaltyShootout({
   const last = shots[shots.length - 1];
   const showDive = flying && last;
   const number = Math.min(shots.length + (flying || sent ? 0 : 1), 5);
+  const picked = showDive ? last.aim : null;
 
   function shoot(aim: Zone) {
     if (lockRef.current || sent || busy || shots.length >= 5) return;
@@ -76,30 +77,38 @@ export function PenaltyShootout({
         <strong>Strafschop {number} van 5</strong>
         <strong>{goals} {goals === 1 ? "doelpunt" : "doelpunten"}</strong>
       </div>
-      <div className="penalty-pips" aria-hidden="true">
+      <div className="penalty-pips" aria-label="Vijf strafschoppen">
         {Array.from({ length: 5 }, (_, index) => {
           const shot = shots[index];
-          return <i key={index} className={shot ? (shot.goal ? "is-goal" : "is-save") : ""} />;
+          const current = !shot && index === shots.length && !sent;
+          const state = shot ? (shot.goal ? "doelpunt" : "gered") : current ? "nu aan de beurt" : "nog niet genomen";
+          return (
+            <span key={index} className={shot ? (shot.goal ? "is-goal" : "is-save") : current ? "is-now" : ""} aria-label={`Strafschop ${index + 1}, ${state}`}>
+              {index + 1}
+            </span>
+          );
         })}
       </div>
       <div className={`penalty-scene${showDive ? " dive" : ""}`}>
-        <img className="penalty-bg" src={showDive ? "/penalty/leeg.jpg" : "/penalty/start.jpg"} alt="" />
+        <img className="penalty-bg" src={showDive ? "/penalty/leeg.jpg" : "/penalty/start.jpg"} alt="Doel met de keeper en de bal" />
         {showDive ? (
           <>
             <img className={`penalty-keeper ${last.keeper}`} src={`/penalty/keeper-${last.keeper}.png?v=2`} alt="" />
             <img className={`penalty-ball ${last.aim} ${last.goal ? "is-goal" : "is-save"}`} src="/penalty/bal.png?v=2" alt="" />
+            <p className={`penalty-stamp ${last.goal ? "is-goal" : "is-save"}`}>{last.goal ? "Goal" : "Gered"}</p>
           </>
         ) : null}
-        {showDive ? <p className={`penalty-caption ${last.goal ? "is-goal" : "is-save"}`} aria-live="polite">{last.line}</p> : null}
-        <div className="penalty-zones">
-          {ZONES.map((zone) => (
-            <button key={zone} type="button" disabled={flying || sent || busy} onClick={() => shoot(zone)}>
-              {LABELS[zone]}
-            </button>
-          ))}
-        </div>
       </div>
-      {showDive ? null : <p className="small">Tik links, midden of rechts in het doel.</p>}
+      <p className={`penalty-line${showDive ? (last.goal ? " is-goal" : " is-save") : ""}`} aria-live="polite">
+        {showDive ? last.line : "Kies een hoek. De keeper duikt pas als de bal weg is."}
+      </p>
+      <div className="penalty-choices">
+        {ZONES.map((zone) => (
+          <button key={zone} type="button" className={picked === zone ? "on" : ""} disabled={flying || sent || busy} onClick={() => shoot(zone)}>
+            {LABELS[zone]}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

@@ -15,7 +15,7 @@ export const GAME_SUMMARIES = {
   photo: "Maak samen een foto bij de opdracht.",
   penalty: "Vijf strafschoppen. Tik links, midden of rechts. De keeper duikt een willekeurige kant op.",
   var: "Bekijk het beeld en kies de juiste beslissing.",
-  spot: "Kies welke verdachte bij het signalement past.",
+  spot: "Vijf camera's. Kies wie er het meest verdacht uitziet.",
 } as const;
 
 export const PHOTO_PROMPTS = [

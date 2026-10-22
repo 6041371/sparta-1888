@@ -11,6 +11,10 @@ export const ROOM_CODES: Record<string, string> = {
   kasteel: "KASTEEL",
 };
 
+export function stationHomeRoom(stationId: string, fallback: string): string {
+  return STATION_TEMPLATES.find((item) => item.id === stationId)?.roomId ?? fallback;
+}
+
 export function roomIdForEntryCode(code: string): string | null {
   const normalized = code.toUpperCase().replace(/[^A-Z0-9]/g, "");
   for (const [id, entry] of Object.entries(ROOM_CODES)) {

@@ -331,7 +331,7 @@ function Rooms({
 }) {
   return (
     <div className="stack">
-      <p>Zet een ruimte uit als die niet gebruikt mag worden. Vul daarna een alternatieve locatie in als de minigame wél gespeeld moet worden.</p>
+      <p>Zet een ruimte uit als die niet gebruikt mag worden. De minigames van dichte ruimtes schuiven vanzelf door naar de open ruimtes, zodat alle zeven spellen gespeeld worden. Spot de verdachte staat altijd als eerste. Crack the Code blijft dicht tot de aanwijzingen binnen zijn.</p>
       {event.rooms.map((room) => {
         const stations = event.stations.filter((station) => station.roomId === room.id);
         return (
@@ -397,7 +397,7 @@ function GamesGuide({ event }: { event: OrganizerSnapshot["event"] }) {
     ["photo", "Foto-opdracht", "Het team stuurt een foto. Jij beoordeelt creativiteit, samenwerking en uitvoering."],
     ["penalty", "Penaltyreeks", "Vijf schoten op het doel. De keeper duikt per poging links, midden of rechts."],
     ["var", "VAR-check", "Drie beelden. Bij Sparta-RKC is de penalty onterecht."],
-    ["spot", "Spot de verdachte", "Eén signalement, vijf verdachten. De volgorde wisselt."],
+    ["spot", "Spot de verdachte", "Vijf camera's. Het meest verdachte beeld is CAM 5. Dit is het eerste spel."],
   ] as const;
   const testing = event.stations.find((station) => station.id === testingId) ?? null;
 

@@ -32,24 +32,23 @@ describe("opslag van een spelevenement", () => {
     });
     const org = created.token;
     const reaction = created.event.stations.find((station) => station.id === "st-bestuur");
-    const museum = created.event.stations.find((station) => station.roomId === "museum");
-    expect(reaction).toBeTruthy();
+    const spot = created.event.stations.find((station) => station.game === "spot");
+    expect(reaction && spot).toBeTruthy();
     expect(created.event.finaleAnswer).toBe(DEFAULT_ANSWER);
 
     await store.mutateOrganizer(org, (event) => {
       event.rooms.find((room) => room.id === "museum")!.available = false;
     });
+    const parked = await store.organizerContext(org, t0 + 900);
+    expect(parked.event.stations.filter((station) => station.roomId === "museum")).toHaveLength(0);
+    expect(new Set(parked.event.stations.map((station) => station.game)).size).toBe(7);
     const teamLogin = await store.loginTeam(created.event.teams[0].joinCode, t0 + 1_000);
     await expect(
-      store.mutateTeam(teamLogin.token, (event, team) => submitReaction(event, team, museum!.code, rounds(true), t0 + 1_100), t0 + 1_100),
+      store.mutateTeam(teamLogin.token, (event, team) => submitReaction(event, team, reaction!.code, rounds(true), t0 + 1_100), t0 + 1_100),
     ).rejects.toThrow(/niet gestart|niet beschikbaar/i);
 
     await store.mutateOrganizer(org, (event, now) => setStatus(event, "start", undefined, now), t0 + 2_000);
-
-    const hidden = store.mutateTeam(teamLogin.token, (event, team, now) =>
-      submitReaction(event, team, museum!.code, rounds(true), now),
-    );
-    await expect(hidden).rejects.toThrow(/niet beschikbaar/i);
+    await store.mutateTeam(teamLogin.token, (event, team, now) => submitSpot(event, team, spot!.code, "cam-5", now), t0 + 2_100);
 
     const [first, second] = await Promise.all([
       store.mutateTeam(teamLogin.token, (event, team, now) => submitReaction(event, team, reaction!.code, rounds(true), now)),
@@ -60,7 +59,7 @@ describe("opslag van een spelevenement", () => {
     expect(first.awarded + second.awarded).toBeGreaterThan(0);
 
     const after = await store.teamContext(teamLogin.token, t0 + 3_000);
-    expect(after.team.completions).toHaveLength(1);
+    expect(after.team.completions).toHaveLength(2);
     expect(after.team.clues).toHaveLength(0);
     expect(after.team.collectedEvidenceIds).toEqual([]);
     const snapshot = toTeamSnapshot(after.event, after.team, t0 + 3_000);
@@ -158,8 +157,10 @@ describe("opslag van een spelevenement", () => {
     });
     expect(first.event.lobbyToken).not.toBe(second.event.lobbyToken);
     expect(first.event.rooms.find((room) => room.id === "bestuurskamer")?.available).toBe(false);
-    expect(first.event.stations.find((station) => station.roomId === "museum")?.roomId).toBe("museum");
-    expect(second.event.stations.find((station) => station.roomId === "museum")?.roomId).toBe("museum");
+    expect(new Set(first.event.stations.map((station) => station.roomId))).toEqual(new Set(["perskamer", "museum"]));
+    expect(first.event.stations.find((station) => station.game === "spot")?.roomId).toBe("perskamer");
+    expect(second.event.stations.every((station) => station.roomId === "kleedkamer")).toBe(true);
+    expect(second.event.stations).toHaveLength(7);
 
     const joined = await store.registerTeam(first.event.lobbyToken, "De Rode Leeuwen", null, now + 2);
     const again = await store.registerTeam(first.event.lobbyToken, "De Rode Leeuwen", joined.token, now + 3);
@@ -303,18 +304,18 @@ describe("opslag van een spelevenement", () => {
       for (const question of questionsFor("bestuurskamer")) {
         team.answers.push({ questionId: question.id, correct: true, points: 0, at: now, response: "x" });
       }
-      const station = event.stations.find((item) => item.roomId === "bestuurskamer" && item.enabled);
-      if (!station) throw new Error("minigame ontbreekt");
-      team.completions.push({
-        stationId: station.id,
-        game: station.game,
-        points: 10,
-        completedAt: now,
-        breakdown: "test",
-        clueTitle: "",
-        clueText: "",
-        photo: null,
-      });
+      for (const station of event.stations.filter((item) => item.roomId === "bestuurskamer" && item.enabled && item.game !== "code")) {
+        team.completions.push({
+          stationId: station.id,
+          game: station.game,
+          points: 10,
+          completedAt: now,
+          breakdown: "test",
+          clueTitle: "",
+          clueText: "",
+          photo: null,
+        });
+      }
     }, now + 3);
     const wrong = await store.mutateTeam(login.token, (event, team, at) => submitQuiz(event, team, "vd-bogarde", "a", at), now + 4);
     expect(wrong.correct).toBe(false);
@@ -372,18 +373,18 @@ describe("opslag van een spelevenement", () => {
       for (const question of questionsFor("bestuurskamer")) {
         team.answers.push({ questionId: question.id, correct: true, points: 0, at: now, response: "x" });
       }
-      const station = event.stations.find((item) => item.roomId === "bestuurskamer" && item.enabled);
-      if (!station) throw new Error("minigame ontbreekt");
-      team.completions.push({
-        stationId: station.id,
-        game: station.game,
-        points: 10,
-        completedAt: now,
-        breakdown: "test",
-        clueTitle: "",
-        clueText: "",
-        photo: null,
-      });
+      for (const station of event.stations.filter((item) => item.roomId === "bestuurskamer" && item.enabled && item.game !== "code")) {
+        team.completions.push({
+          stationId: station.id,
+          game: station.game,
+          points: 10,
+          completedAt: now,
+          breakdown: "test",
+          clueTitle: "",
+          clueText: "",
+          photo: null,
+        });
+      }
     }, now + 3);
     const done = await store.teamContext(login.token, now + 4);
     expect(done.team.collectedEvidenceIds.slice().sort()).toEqual(EVIDENCE_ITEMS.map((item) => item.id).sort());
@@ -461,6 +462,14 @@ describe("opslag van een spelevenement", () => {
     const photo = created.event.stations.find((station) => station.game === "photo");
     expect(penalty && variable && spot && photo).toBeTruthy();
 
+    const missed = await store.mutateTeam(login.token, (event, team, at) => submitSpot(event, team, spot!.code, "cam-1", at), now + 3);
+    expect(missed.correct).toBe(false);
+    expect(missed.finished).toBe(true);
+    expect(missed.feedback).toMatch(/camera/i);
+    const repeatSpot = await store.mutateTeam(login.token, (event, team, at) => submitSpot(event, team, spot!.code, "cam-5", at), now + 4);
+    expect(repeatSpot.awarded).toBe(0);
+    expect(repeatSpot.correct).toBe(false);
+
     const scored = await store.mutateTeam(
       login.token,
       (event, team, at) =>
@@ -472,7 +481,7 @@ describe("opslag van een spelevenement", () => {
           ["rechts", "midden", "links", "links", "rechts"],
           at,
         ),
-      now + 3,
+      now + 5,
     );
     expect(scored.breakdown).toContain("3 van 5");
     expect(scored.points).toBe(60);
@@ -480,7 +489,7 @@ describe("opslag van een spelevenement", () => {
       login.token,
       (event, team, at) =>
         submitPenalty(event, team, penalty!.code, ["links", "links", "links", "links", "links"], ["rechts", "rechts", "rechts", "rechts", "rechts"], at),
-      now + 4,
+      now + 6,
     );
     expect(again.awarded).toBe(0);
     expect(again.points).toBe(60);
@@ -488,23 +497,15 @@ describe("opslag van een spelevenement", () => {
     const decisions = await store.mutateTeam(
       login.token,
       (event, team, at) => submitVar(event, team, variable!.code, ["buitenspel", "b", "correct"], at),
-      now + 5,
+      now + 7,
     );
     expect(decisions.breakdown).toContain("3 van 3");
     const repeatVar = await store.mutateTeam(
       login.token,
       (event, team, at) => submitVar(event, team, variable!.code, ["geen", "geen", "geen"], at),
-      now + 6,
+      now + 8,
     );
     expect(repeatVar.awarded).toBe(0);
-
-    const missed = await store.mutateTeam(login.token, (event, team, at) => submitSpot(event, team, spot!.code, "bosman", at), now + 7);
-    expect(missed.correct).toBe(false);
-    expect(missed.finished).toBe(true);
-    expect(missed.feedback).toMatch(/stadion/i);
-    const repeatSpot = await store.mutateTeam(login.token, (event, team, at) => submitSpot(event, team, spot!.code, "thomas", at), now + 8);
-    expect(repeatSpot.awarded).toBe(0);
-    expect(repeatSpot.correct).toBe(false);
 
     await expect(
       store.mutateTeam(login.token, (event, team, at) => submitPhoto(event, team, photo!.code, "geen-foto", at), now + 9),

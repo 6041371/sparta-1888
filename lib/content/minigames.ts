@@ -117,16 +117,25 @@ export function scoreVar(answers: string[], pointsMax: number): ScoreResult & { 
   };
 }
 
-export const SPOT_CLUE =
-  "Een getuige zag iemand die de gangen van het stadion kende en er vroeger werkte. De persoon liep na tienen nog binnen.";
+export const SPOT_CLUE = "Welke persoon ziet er het meest verdacht uit?";
 
-export const SPOT_SUSPECT = "thomas";
+export const SPOT_BOARD = "/spot/signalement.jpg";
+
+export const SPOT_CAMS = [
+  { id: "cam-1", label: "CAM 1" },
+  { id: "cam-2", label: "CAM 2" },
+  { id: "cam-3", label: "CAM 3" },
+  { id: "cam-4", label: "CAM 4" },
+  { id: "cam-5", label: "CAM 5" },
+] as const;
+
+export const SPOT_SUSPECT = "cam-5";
 
 export const SPOT_RIGHT =
-  "Alleen Thomas Vermeer werkte in het stadion en kende de beveiliging. Dat maakt hem de enige die bij dit signalement past. Het is een spoor, nog geen eindconclusie.";
+  "CAM 5. Die persoon heeft een veel te grote sporttas, een auto en een antiek beeld bij zich. Dat past niet bij een gewone bezoeker.";
 
 export const SPOT_WRONG =
-  "Dit signalement noemt iemand die in het stadion werkte. De andere rollen, verzamelaar, supporter, historicus of handelaar, volgen daar niet uit.";
+  "Kijk nog eens naar de camera's en de signalementen eronder. Eén persoon neemt veel meer mee dan de anderen.";
 
 export function scoreSpot(suspectId: string, pointsMax: number): ScoreResult & { correct: boolean; feedback: string } {
   const correct = suspectId === SPOT_SUSPECT;
