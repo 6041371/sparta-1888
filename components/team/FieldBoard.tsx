@@ -4,7 +4,7 @@ import { useState } from "react";
 import { api } from "@/lib/client/api";
 import type { PublicFieldPlayer, PublicQuizQuestion } from "@/lib/types";
 import { useTeam } from "@/components/team/TeamShell";
-import { Banner, Button } from "@/components/ui";
+import { Banner, Button, Modal } from "@/components/ui";
 
 export function FieldBoard() {
   const { state, refresh } = useTeam();
@@ -81,8 +81,7 @@ export function FieldBoard() {
       </div>
       <p className="small">Tik een speler aan voor zijn vraag. Wie nog niet vrij is, staat niet op het veld.</p>
       {player && question ? (
-        <article className="paper stack">
-          <p className="kicker">{player.name}</p>
+        <Modal title={player.name} onClose={() => setPlayer(null)}>
           <p className="question-prompt">{question.prompt}</p>
           {question.closed ? <Banner tone={question.solved ? "ok" : "warn"}>Deze vraag is al gecontroleerd.</Banner> : question.kind === "choice" ? (
             <div className="stack">
@@ -95,8 +94,7 @@ export function FieldBoard() {
           )}
           {note ? <Banner tone={note.ok ? "ok" : "warn"}>{note.text}</Banner> : null}
           {question.closed ? null : <Button full disabled={busy || (question.kind === "choice" ? !pick : !text.trim())} onClick={() => void check()}>{busy ? "Controleren…" : "Controleer antwoord"}</Button>}
-          <Button kind="dark" full onClick={() => setPlayer(null)}>Sluit</Button>
-        </article>
+        </Modal>
       ) : null}
     </div>
   );

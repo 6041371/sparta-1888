@@ -48,7 +48,6 @@ export function GameScreen({ code }: { code: string }) {
   const [feedback, setFeedback] = useState<{ text: string; ok: boolean } | null>(null);
   const [hint, setHint] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [practice, setPractice] = useState(false);
 
   async function load() {
     const data = await api<{ outcome: Entered; state: TeamSnapshot }>("/api/team", { action: "enter", code });
@@ -81,7 +80,6 @@ export function GameScreen({ code }: { code: string }) {
       setFeedback(data.outcome.feedback ? { text: data.outcome.feedback, ok: data.outcome.correct !== false } : null);
       setOutcome(body.action === "hint" || (data.outcome.correct === false && !data.outcome.finished) ? null : data.outcome);
       await refresh();
-      if (body.action !== "hint") setPractice(false);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Het antwoord kon niet worden opgeslagen.");
     } finally {
@@ -101,7 +99,7 @@ export function GameScreen({ code }: { code: string }) {
   }
   if (!entered) return <Loading label="Station openen…" />;
 
-  const done = entered.completion && !practice;
+  const done = Boolean(entered.completion);
   return (
     <div className="stack">
       <div>
@@ -127,25 +125,19 @@ export function GameScreen({ code }: { code: string }) {
               <p className="serif">{entered.completion.clueText}</p>
             </div>
           ) : null}
-          <p className="small">Opnieuw spelen opent geen nieuw bewijs. Het bewijs staat in de zaakmap.</p>
-          {entered.station.game !== "photo" && entered.station.game !== "code" ? (
-            <Button kind="dark" onClick={() => setPractice(true)}>
-              Oefen nog een keer
-            </Button>
-          ) : null}
           <Link className="btn primary" href={entered.station.roomId ? `/spel/locatie/${entered.station.roomId}` : "/spel"}>
             Terug naar de kamer
           </Link>
         </article>
       ) : null}
-      {!done && entered.blockReason && !practice ? <Banner>{entered.blockReason}</Banner> : null}
-      {!done && !outcome && (entered.playable || practice) && entered.station.game === "reaction" ? (
-        <ReactionArena busy={busy} onFinish={(rounds: ReactionRound[]) => (practice ? setPractice(false) : send({ action: "reaction", code, rounds }))} />
+      {!done && entered.blockReason ? <Banner>{entered.blockReason}</Banner> : null}
+      {!done && !outcome && entered.playable && entered.station.game === "reaction" ? (
+        <ReactionArena busy={busy} onFinish={(rounds: ReactionRound[]) => send({ action: "reaction", code, rounds })} />
       ) : null}
-      {!done && !outcome && (entered.playable || practice) && entered.station.game === "memory" ? (
+      {!done && !outcome && entered.playable && entered.station.game === "memory" ? (
         <MemoryVault
           busy={busy}
-          onFinish={(result) => (practice ? setPractice(false) : send({ action: "memory", code, ...result }))}
+          onFinish={(result) => send({ action: "memory", code, ...result })}
         />
       ) : null}
       {!done && !outcome && entered.playable && entered.station.game === "code" && entered.station.puzzle?.id === "dossier" ? (
@@ -166,11 +158,11 @@ export function GameScreen({ code }: { code: string }) {
           onHint={() => send({ action: "hint", code })}
         />
       ) : null}
-      {!done && !outcome && (entered.playable || practice) && entered.station.game === "penalty" ? (
-        <PenaltyShootout busy={busy} onFinish={(result) => (practice ? setPractice(false) : send({ action: "penalty", code, ...result }))} />
+      {!done && !outcome && entered.playable && entered.station.game === "penalty" ? (
+        <PenaltyShootout busy={busy} onFinish={(result) => send({ action: "penalty", code, ...result })} />
       ) : null}
-      {!done && !outcome && (entered.playable || practice) && entered.station.game === "var" ? (
-        <VarCheck busy={busy} onFinish={(answers) => (practice ? setPractice(false) : send({ action: "var", code, answers }))} />
+      {!done && !outcome && entered.playable && entered.station.game === "var" ? (
+        <VarCheck busy={busy} onFinish={(answers) => send({ action: "var", code, answers })} />
       ) : null}
       {!done && !outcome && entered.playable && entered.station.game === "spot" ? (
         <SpotSuspect busy={busy} onFinish={(suspectId) => send({ action: "spot", code, suspectId })} />

@@ -440,7 +440,7 @@ input[type="checkbox"] {
   position: fixed; inset: 0; background: rgba(0, 0, 0, 0.62); display: grid; place-items: end center;
   z-index: 30; padding: 16px;
 }
-.modal { width: min(520px, 100%); }
+.modal { width: min(520px, 100%); max-height: min(78vh, 720px); overflow: auto; }
 
 .toast {
   position: fixed; left: 50%; bottom: 92px; transform: translateX(-50%);
