@@ -1268,14 +1268,12 @@ export function submitFinale(
       now,
     );
     event.teams = event.teams.map((item) => (item.id === team.id ? result.team : item));
-    const secret = result.correct && (result.team.finaleSolved || event.resultsPublished) ? event.secretText : null;
     return {
-      correct: result.correct,
       already: result.already,
       feedback: result.feedback,
       score: result.team.score,
-      finalePoints: result.already ? 0 : result.correct ? event.scoring.finalePoints : 0,
-      secret,
+      finalePoints: 0,
+      secret: null,
     };
   }
   const result = applyFinale(team, event, typeof answer === "string" ? answer : "", event.scoring, now);

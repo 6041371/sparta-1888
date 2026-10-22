@@ -23,11 +23,32 @@ function useRetryLeft(retryAt: number | null, serverNow: number) {
   return Math.max(0, retryAt - (Date.now() - skew));
 }
 
+const RETRY_MS = 5 * 60 * 1000;
+
 function clock(ms: number) {
   const total = Math.ceil(ms / 1000);
   const minutes = Math.floor(total / 60);
   const seconds = total % 60;
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function RetryClock({ retryAt, serverNow, label }: { retryAt: number | null; serverNow: number; label: string }) {
+  const left = useRetryLeft(retryAt, serverNow);
+  if (!retryAt || left <= 0) return null;
+  const width = Math.max(0, Math.min(100, (left / RETRY_MS) * 100));
+  return (
+    <article className="field-timer" role="timer" aria-live="off">
+      <small>{label}</small>
+      <b>{clock(left)}</b>
+      <span className="field-timer-bar" aria-hidden="true"><i style={{ width: `${width}%` }} /></span>
+    </article>
+  );
+}
+
+function PitchClock({ retryAt, serverNow }: { retryAt: number | null; serverNow: number }) {
+  const left = useRetryLeft(retryAt, serverNow);
+  if (!retryAt || left <= 0) return null;
+  return <em className="pitch-clock">{clock(left)}</em>;
 }
 
 export function FieldBoard() {
@@ -101,22 +122,30 @@ export function FieldBoard() {
       </div>
       <div className="pitch">
         <img src="/veld-leeg.png" alt="" />
-        {state.event.fieldPlayers.filter((item) => item.unlocked).map((item) => (
-          <button key={item.questionId} type="button" className={`pitch-player ${item.solved ? "done" : ""}`} style={{ top: item.top, left: item.left }} onClick={() => { setPlayer(item); setPick(""); setText(""); setNote(null); setLockUntil(null); }}>
-            <img src={item.image} alt="" />
-            <span>{item.name}</span>
-          </button>
-        ))}
+        {state.event.fieldPlayers.filter((item) => item.unlocked).map((item) => {
+          const card = state.event.questions.find((question) => question.id === item.questionId);
+          return (
+            <button key={item.questionId} type="button" className={`pitch-player ${item.solved ? "done" : ""}`} style={{ top: item.top, left: item.left }} onClick={() => { setPlayer(item); setPick(""); setText(""); setNote(null); setLockUntil(null); }}>
+              <img src={item.image} alt="" />
+              <span>{item.name}</span>
+              <PitchClock retryAt={card?.retryAt ?? null} serverNow={state.serverNow} />
+            </button>
+          );
+        })}
+      </div>
+      <div className="field-timers">
+        {state.event.fieldPlayers.filter((item) => item.unlocked).map((item) => {
+          const card = state.event.questions.find((question) => question.id === item.questionId);
+          if (!card?.retryAt) return null;
+          return <RetryClock key={item.questionId} retryAt={card.retryAt} serverNow={state.serverNow} label={`${item.name} · opnieuw over`} />;
+        })}
       </div>
       <p className="small">Tik een speler aan voor zijn vraag. Een fout antwoord kan na vijf minuten opnieuw, tot het goed is. Wie nog niet vrij is, staat niet op het veld.</p>
       {player && question ? (
         <Modal title={player.name} onClose={() => setPlayer(null)}>
           <p className="question-prompt">{question.prompt}</p>
           {question.solved ? <Banner tone="ok">Goed.</Banner> : retryLeft > 0 ? (
-            <>
-              <Banner tone="warn">Dat klopt nog niet.</Banner>
-              <p className="retry-clock" role="timer" aria-live="off"><small>Opnieuw over</small>{clock(retryLeft)}</p>
-            </>
+            <RetryClock retryAt={retryAt} serverNow={state.serverNow} label="Opnieuw proberen over" />
           ) : (
             <>
               {question.kind === "choice" ? (

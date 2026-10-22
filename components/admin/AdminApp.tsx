@@ -5,8 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/client/api";
 import { ROOM_CODES } from "@/lib/server/defaults";
+import { SUSPECTS } from "@/lib/copy";
 import { formatRemaining, normCode, scoreMemory, scoreReaction, suggestedPhotoPoints } from "@/lib/game/logic";
-import type { OrganizerSnapshot, OrganizerStation, ScoringConfig } from "@/lib/types";
+import type { OrganizerSnapshot, OrganizerStation, RankRow, ScoringConfig } from "@/lib/types";
 import { Shield } from "@/components/Shield";
 import { Banner, Button, Field, Loading } from "@/components/ui";
 import { ReactionArena } from "@/components/games/ReactionArena";
@@ -26,7 +27,7 @@ const SECTIONS = [
   ["qr", "QR-codes"],
   ["punten", "Punten"],
   ["finale", "Finale"],
-  ["klassement", "Klassement"],
+  ["klassement", "Winnaar"],
   ["fotos", "Foto's"],
   ["uitslag", "Uitslag"],
 ] as const;
@@ -119,7 +120,7 @@ export function AdminApp() {
           </button>
         ))}
       </div>
-      {section === "overzicht" ? <Overview event={event} busy={busy} run={run} /> : null}
+      {section === "overzicht" ? <Overview event={event} leaderboard={leaderboard} busy={busy} run={run} /> : null}
       {section === "instellingen" ? <Settings key={event.id + event.name} event={event} busy={busy} run={run} /> : null}
       {section === "teams" ? <Teams event={event} busy={busy} run={run} /> : null}
       {section === "ruimtes" ? <Rooms event={event} busy={busy} run={run} /> : null}
@@ -135,12 +136,25 @@ export function AdminApp() {
   );
 }
 
+function daderLabel(solved: boolean, submitted: boolean) {
+  if (solved) return "Goed";
+  if (submitted) return "Fout";
+  return "Nog niet";
+}
+
+function suspectName(id: string | null) {
+  if (!id) return "—";
+  return SUSPECTS.find((suspect) => suspect.id === id)?.name ?? "—";
+}
+
 function Overview({
   event,
+  leaderboard,
   busy,
   run,
 }: {
   event: OrganizerSnapshot["event"];
+  leaderboard: RankRow[];
   busy: boolean;
   run: (body: Record<string, unknown>, success: string) => Promise<void>;
 }) {
@@ -158,6 +172,7 @@ function Overview({
         <article className="stat"><b>{pending}</b><span>foto's te doen</span></article>
         <article className="stat"><b>{stuck.length}</b><span>teams zonder start</span></article>
       </section>
+      <WinnerCard rows={leaderboard} />
       <div className="paper dark stack">
         <p className="kicker">Ruimtecode voor de iPads</p>
         <p className="pad-code">{event.padCode}</p>
@@ -187,7 +202,7 @@ function Overview({
           <article key={team.id} className="paper spread">
             <div>
               <b>{team.name}</b>
-              <p className="small" style={{ margin: 0 }}>Aangemeld · {team.completedCount} opdrachten · zaak {team.finaleSolved ? "opgelost" : "open"}</p>
+              <p className="small" style={{ margin: 0 }}>Aangemeld · {team.completedCount} opdrachten · dader {daderLabel(team.finaleSolved, team.finaleAttempts > 0)}</p>
               {team.writings.map((writing) => (
                 <p key={writing.prompt} className="small" style={{ margin: "8px 0 0" }}><b>{writing.prompt}</b><br />{writing.response}</p>
               ))}
@@ -211,25 +226,18 @@ function Settings({
 }) {
   const [name, setName] = useState(event.name);
   const [duration, setDuration] = useState(String(event.durationMinutes));
-  const [tiebreaker, setTiebreaker] = useState(event.tiebreaker);
   return (
     <form
       className="paper stack"
       onSubmit={(submit) => {
         submit.preventDefault();
-        void run({ action: "save-settings", settings: { name, durationMinutes: Number(duration), tiebreaker } }, "Instellingen opgeslagen.");
+        void run({ action: "save-settings", settings: { name, durationMinutes: Number(duration), tiebreaker: event.tiebreaker } }, "Instellingen opgeslagen.");
       }}
     >
       <h2 className="display">Evenement</h2>
       <Field label="Naam" value={name} onChange={setName} />
       <Field label="Speelduur in minuten" type="number" value={duration} onChange={setDuration} />
-      <label className="field">
-        <span>Gelijke stand</span>
-        <select value={tiebreaker} onChange={(input) => setTiebreaker(input.target.value as typeof tiebreaker)}>
-          <option value="finale_then_time">Eerst de finalescore, daarna wie die score het eerst had</option>
-          <option value="time_then_finale">Eerst wie de score het eerst had, daarna de finalescore</option>
-        </select>
-      </label>
+      <p className="small">De winnaar is het team dat de dader goed heeft. Hebben meerdere teams dat, dan wint het hoogste puntenaantal. Een gelijk aantal punten is een gedeelde winst.</p>
       <Button type="submit" disabled={busy}>Bewaar evenement</Button>
     </form>
   );
@@ -588,23 +596,47 @@ function Finale({
   );
 }
 
+function WinnerCard({ rows }: { rows: RankRow[] }) {
+  const solved = rows.filter((row) => row.finaleSolved);
+  const winners = solved.filter((row) => row.position === solved[0]?.position);
+  if (winners.length === 0) {
+    return <Banner>Nog geen winnaar. Een team wint pas als de dader goed is.</Banner>;
+  }
+  return (
+    <article className="paper stack">
+      <p className="kicker">{winners.length > 1 ? "Gedeelde winst" : "Winnaar"}</p>
+      {winners.map((row) => (
+        <div key={row.teamId} className="spread">
+          <h2 className="display" style={{ margin: 0 }}>{row.name}</h2>
+          <b>{row.score} punten</b>
+        </div>
+      ))}
+      <p className="small" style={{ margin: 0 }}>De dader is goed. Bij meerdere goede teams wint het hoogste puntenaantal.</p>
+    </article>
+  );
+}
+
 function AdminBoard({ rows }: { rows: OrganizerSnapshot["leaderboard"] }) {
+  const solved = rows.filter((row) => row.finaleSolved);
+  const winnerIds = new Set(solved.filter((row) => row.position === solved[0]?.position).map((row) => row.teamId));
   return (
     <div className="stack">
-      <h2 className="display">Klassement</h2>
-      <p className="small muted">De stand ververst elke 5 seconden zolang je op dit scherm blijft.</p>
+      <h2 className="display">Wie wint</h2>
+      <p>Een team wint als de dader goed is. Hebben meerdere teams de dader goed, dan wint het team met de meeste punten. De teams zien dit nog niet.</p>
+      <WinnerCard rows={rows} />
+      <p className="small muted">Dit overzicht ververst elke 5 seconden.</p>
       <table className="table">
         <thead>
-          <tr><th>#</th><th>Team</th><th>Score</th><th>Stations</th><th>Finale</th></tr>
+          <tr><th>Plek</th><th>Team</th><th>Punten</th><th>Aangewezen</th><th>Dader</th></tr>
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.teamId}>
+            <tr key={row.teamId} className={winnerIds.has(row.teamId) ? "win" : undefined}>
               <td>{row.position}</td>
               <td>{row.name}</td>
               <td>{row.score}</td>
-              <td>{row.completedCount}</td>
-              <td>{row.finaleStatus}</td>
+              <td>{row.finaleSubmitted ? suspectName(row.finaleSuspect) : "—"}</td>
+              <td>{daderLabel(row.finaleSolved, row.finaleSubmitted)}</td>
             </tr>
           ))}
         </tbody>

@@ -204,6 +204,7 @@ export interface TeamView {
   completions: PublicCompletion[];
   ledger: LedgerLine[];
   finaleSolved: boolean;
+  finaleSubmitted: boolean;
   finalePoints: number;
   finaleAttempts: number;
   hintsUsedKeys: string[];
@@ -302,6 +303,8 @@ export interface RankRow {
   score: number;
   completedCount: number;
   finaleSolved: boolean;
+  finaleSubmitted: boolean;
+  finaleSuspect: string | null;
   finalePoints: number;
   finaleStatus: "opgelost" | "bezig" | "wachten";
   lastScoreAt: number | null;

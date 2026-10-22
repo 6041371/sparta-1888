@@ -284,8 +284,8 @@ export function applyAccusation(
   if (event.status === "lobby") throw new GameError("Het evenement is nog niet gestart.", 403);
   if (event.status === "paused") throw new GameError("Het spel is gepauzeerd door de organisatie.", 403);
   if (!event.finaleOpen) throw new GameError("De afronding is nog niet geopend.", 403);
-  if (team.finaleSolved) {
-    return { team, correct: true, already: true, feedback: "Jullie hebben de zaak al opgelost." };
+  if (team.finaleSuspect || team.finaleSolved) {
+    return { team, correct: team.finaleSolved, already: true, feedback: "Jullie verklaring is al ingeleverd." };
   }
   const id = suspectId.trim().toLowerCase();
   if (!SUSPECTS.some((suspect) => suspect.id === id)) throw new GameError("Kies een verdachte.");
@@ -307,7 +307,7 @@ export function applyAccusation(
       }),
       correct: false,
       already: false,
-      feedback: "De conclusie klopt nog niet. Bekijk de zaakmap nog eens. De oplossing blijft dicht.",
+      feedback: "Ingeleverd. Of het klopt, horen jullie bij de instructeur.",
     };
   }
   const next = withScore(
@@ -322,31 +322,19 @@ export function applyAccusation(
     },
     now,
   );
-  return { team: next, correct: true, already: false, feedback: "Het bewijs wijst inderdaad naar dit spelpersonage." };
+  return { team: next, correct: true, already: false, feedback: "Ingeleverd. Of het klopt, horen jullie bij de instructeur." };
 }
 
-function sameRank(a: Team, b: Team, tiebreaker: TieBreaker): boolean {
-  if (a.score !== b.score) return false;
-  if (tiebreaker === "finale_then_time") {
-    return a.finalePoints === b.finalePoints && a.lastScoreAt === b.lastScoreAt;
-  }
-  return a.lastScoreAt === b.lastScoreAt && a.finalePoints === b.finalePoints;
+function sameRank(a: Team, b: Team): boolean {
+  return a.finaleSolved === b.finaleSolved && a.score === b.score;
 }
 
-export function rankTeams(teams: Team[], tiebreaker: TieBreaker, finaleOpen: boolean): RankRow[] {
+export function rankTeams(teams: Team[], _tiebreaker: TieBreaker, finaleOpen: boolean): RankRow[] {
   const sorted = [...teams].sort((a, b) => {
+    if (a.finaleSolved !== b.finaleSolved) return a.finaleSolved ? -1 : 1;
     if (b.score !== a.score) return b.score - a.score;
-    if (tiebreaker === "finale_then_time") {
-      if (b.finalePoints !== a.finalePoints) return b.finalePoints - a.finalePoints;
-    } else if ((a.lastScoreAt ?? Number.MAX_SAFE_INTEGER) !== (b.lastScoreAt ?? Number.MAX_SAFE_INTEGER)) {
-      return (a.lastScoreAt ?? Number.MAX_SAFE_INTEGER) - (b.lastScoreAt ?? Number.MAX_SAFE_INTEGER);
-    }
-    if (tiebreaker === "finale_then_time") {
-      const time = (a.lastScoreAt ?? Number.MAX_SAFE_INTEGER) - (b.lastScoreAt ?? Number.MAX_SAFE_INTEGER);
-      if (time !== 0) return time;
-    } else if (b.finalePoints !== a.finalePoints) {
-      return b.finalePoints - a.finalePoints;
-    }
+    const time = (a.lastScoreAt ?? Number.MAX_SAFE_INTEGER) - (b.lastScoreAt ?? Number.MAX_SAFE_INTEGER);
+    if (time !== 0) return time;
     const name = a.name.localeCompare(b.name, "nl");
     if (name !== 0) return name;
     return a.id.localeCompare(b.id);
@@ -354,7 +342,8 @@ export function rankTeams(teams: Team[], tiebreaker: TieBreaker, finaleOpen: boo
 
   let position = 1;
   return sorted.map((team, index) => {
-    if (index > 0 && !sameRank(sorted[index - 1], team, tiebreaker)) position = index + 1;
+    if (index > 0 && !sameRank(sorted[index - 1], team)) position = index + 1;
+    const finaleSubmitted = Boolean(team.finaleSuspect) || team.finaleAttempts > 0 || team.finaleSolved;
     return {
       position,
       teamId: team.id,
@@ -362,6 +351,8 @@ export function rankTeams(teams: Team[], tiebreaker: TieBreaker, finaleOpen: boo
       score: team.score,
       completedCount: team.completions.length + (team.answers?.filter((item) => item.points > 0).length ?? 0),
       finaleSolved: team.finaleSolved,
+      finaleSubmitted,
+      finaleSuspect: team.finaleSuspect,
       finalePoints: team.finalePoints,
       finaleStatus: team.finaleSolved ? "opgelost" : finaleOpen ? "bezig" : "wachten",
       lastScoreAt: team.lastScoreAt,

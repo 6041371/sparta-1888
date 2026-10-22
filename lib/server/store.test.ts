@@ -207,13 +207,23 @@ describe("opslag van een spelevenement", () => {
       (event, team, at) => submitFinale(event, team, "", at, { suspectId: "hendrik", explanation: "Hij wilde het beeld voor zijn collectie." }),
       now + 13,
     );
-    expect(closed.correct).toBe(false);
-    const solved = await store.mutateTeam(
+    expect(closed.feedback).toBe("Ingeleverd. Of het klopt, horen jullie bij de instructeur.");
+    expect(closed.secret).toBeNull();
+    expect(closed.feedback.toLowerCase()).not.toContain("hendrik");
+    const retry = await store.mutateTeam(
       joined.token,
       (event, team, at) => submitFinale(event, team, "", at, { suspectId: "bosman", explanation: "De initialen R.B. en de naam op het document wijzen naar hem." }),
       now + 14,
     );
-    expect(solved.correct).toBe(true);
+    expect(retry.already).toBe(true);
+    const saved = await store.teamContext(joined.token, now + 15);
+    expect(saved.team.finaleSuspect).toBe("hendrik");
+    expect(saved.team.finaleSolved).toBe(false);
+    const hidden = toTeamSnapshot(saved.event, saved.team, now + 15);
+    expect(hidden.team.finaleSubmitted).toBe(true);
+    expect(hidden.team.finaleSolved).toBe(false);
+    expect(hidden.team.secretVisible).toBe(false);
+    expect(hidden.event.secretText).toBeNull();
     expect(second.event.status).toBe("lobby");
 
     const opened = await store.resolveEntry(first.event.padCode, null, now + 14);

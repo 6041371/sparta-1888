@@ -15,6 +15,12 @@ import type {
 } from "@/lib/types";
 import { getPuzzle, publicPuzzle } from "@/lib/server/puzzles";
 
+const FINALE_LEAK = new Set(["Finale", "Onjuiste verdachte", "Foute eindcode"]);
+
+function finaleLeak(team: Team) {
+  return (team.finalePoints ?? 0) + (team.adjustments ?? []).reduce((sum, item) => sum + (FINALE_LEAK.has(item.reason) ? item.points : 0), 0);
+}
+
 function ledger(team: Team, event: GameEvent): LedgerLine[] {
   const lines: LedgerLine[] = [];
   for (const completion of team.completions) {
@@ -80,7 +86,7 @@ export function toTeamSnapshot(event: GameEvent, team: Team, now: number): TeamS
   const board = rankTeams(event.teams, event.tiebreaker, event.finaleOpen);
   const mine = board.find((row) => row.teamId === team.id);
   const openStations = visibleStations(event.stations, event.rooms);
-  const secretVisible = team.finaleSolved || event.resultsPublished;
+  const secretVisible = event.resultsPublished;
   const current = event.teams.find((item) => item.id === team.id) ?? team;
   current.score = displayScore(current);
   const answers = current.answers ?? [];
@@ -147,7 +153,7 @@ export function toTeamSnapshot(event: GameEvent, team: Team, now: number): TeamS
       id: current.id,
       name: current.name,
       joinCode: current.joinCode,
-      score: current.score,
+      score: event.resultsPublished ? current.score : current.score - finaleLeak(current),
       rank: mine?.position ?? board.length,
       teamCount: event.teams.length,
       completedCount: current.completions.length + solvedIds.size,
@@ -162,9 +168,10 @@ export function toTeamSnapshot(event: GameEvent, team: Team, now: number): TeamS
         breakdown: completion.breakdown,
         photoStatus: completion.photo?.status ?? null,
       })),
-      ledger: ledger(current, event),
-      finaleSolved: current.finaleSolved,
-      finalePoints: current.finalePoints,
+      ledger: event.resultsPublished ? ledger(current, event) : ledger(current, event).filter((line) => !FINALE_LEAK.has(line.label)),
+      finaleSolved: event.resultsPublished ? current.finaleSolved : false,
+      finaleSubmitted: Boolean(current.finaleSuspect) || current.finaleAttempts > 0 || current.finaleSolved,
+      finalePoints: event.resultsPublished ? current.finalePoints : 0,
       finaleAttempts: current.finaleAttempts,
       hintsUsedKeys: current.hintsUsed.map((hint) => hint.key),
       hintsLeft: Math.max(0, event.scoring.maxHints - current.hintsUsed.length),

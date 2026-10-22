@@ -186,18 +186,38 @@ describe("timer, finale en ranglijst", () => {
     expect(repeat.team.score).toBe(150);
   });
 
-  it("sorteert op score en gebruikt de gekozen tiebreak", () => {
-    const early = team({ id: "a", name: "Vroeg", score: 100, finalePoints: 0, lastScoreAt: 10 });
-    const finale = team({ id: "b", name: "Finale", score: 100, finalePoints: 150, lastScoreAt: 50, finaleSolved: true });
+  it("zet de juiste dader boven de rest en daarbinnen het hoogste puntenaantal", () => {
+    const early = team({ id: "a", name: "Vroeg", score: 100, finalePoints: 0, lastScoreAt: 10, finaleAttempts: 1, finaleSuspect: "hendrik" });
+    const finale = team({ id: "b", name: "Finale", score: 100, finalePoints: 150, lastScoreAt: 50, finaleSolved: true, finaleSuspect: "bosman" });
     const low = team({ id: "c", name: "Laag", score: 40, lastScoreAt: 5 });
+    const richWrong = team({ id: "r", name: "Rijk", score: 900, finaleAttempts: 1, finaleSuspect: "hendrik" });
+    const modest = team({ id: "m", name: "Bescheiden", score: 80, finaleSolved: true, finalePoints: 150, finaleSuspect: "bosman" });
 
-    const byFinale = rankTeams([early, low, finale], "finale_then_time", true);
-    expect(byFinale.map((row) => row.teamId)).toEqual(["b", "a", "c"]);
+    const board = rankTeams([early, low, finale], "finale_then_time", true);
+    expect(board.map((row) => row.teamId)).toEqual(["b", "a", "c"]);
+    expect(board[0].finaleSubmitted).toBe(true);
+    expect(board[2].finaleSubmitted).toBe(false);
 
-    const byTime = rankTeams([early, finale, low], "time_then_finale", true);
-    expect(byTime.map((row) => row.teamId)).toEqual(["a", "b", "c"]);
-    expect(byTime[0].position).toBe(1);
-    expect(byTime[2].finaleStatus).toBe("bezig");
+    const tiedPoints = rankTeams([early, finale, low], "time_then_finale", true);
+    expect(tiedPoints.map((row) => row.teamId)).toEqual(["b", "a", "c"]);
+    expect(tiedPoints[0].position).toBe(1);
+    expect(tiedPoints[2].finaleStatus).toBe("bezig");
+
+    const culpritFirst = rankTeams([richWrong, modest], "finale_then_time", true);
+    expect(culpritFirst.map((row) => row.teamId)).toEqual(["m", "r"]);
+    expect(culpritFirst[0].finaleSuspect).toBe("bosman");
+    expect(culpritFirst[1].finaleSubmitted).toBe(true);
+
+    const shared = rankTeams(
+      [
+        team({ id: "x", name: "Een", score: 200, finaleSolved: true }),
+        team({ id: "y", name: "Twee", score: 200, finaleSolved: true }),
+      ],
+      "finale_then_time",
+      true,
+    );
+    expect(shared[0].position).toBe(1);
+    expect(shared[1].position).toBe(1);
   });
 
   it("leest een stationcode uit een QR-link of een handmatige code", () => {

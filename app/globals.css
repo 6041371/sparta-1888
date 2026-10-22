@@ -202,6 +202,59 @@ h3 { font-size: 1.25rem; margin-bottom: 6px; }
   text-align: center;
 }
 .pitch-player.done img { outline: 3px solid #d7b56d; outline-offset: 1px; }
+.pitch-clock {
+  display: block;
+  margin-top: 2px;
+  padding: 2px 4px;
+  border-radius: 6px;
+  background: var(--red);
+  color: white;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-align: center;
+}
+.field-timers { display: grid; gap: 10px; }
+.field-timer {
+  margin: 0;
+  padding: 16px 18px 14px;
+  border-radius: 18px;
+  background: var(--ink);
+  color: white;
+  text-align: center;
+}
+.field-timer small {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #c8c2b8;
+}
+.field-timer b {
+  display: block;
+  font-family: var(--font-display), sans-serif;
+  font-size: clamp(3.2rem, 12vw, 4.6rem);
+  line-height: 0.9;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+.field-timer-bar {
+  display: block;
+  height: 8px;
+  margin-top: 12px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+}
+.field-timer-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #ffb4b4;
+}
 .btn.warn { background: #f4e2c4; color: var(--warn); }
 
 .field { display: grid; gap: 6px; font-weight: 650; }
@@ -441,24 +494,7 @@ input[type="checkbox"] {
   z-index: 30; padding: 16px;
 }
 .modal { width: min(520px, 100%); max-height: min(78vh, 720px); overflow: auto; }
-.retry-clock {
-  margin: 4px 0 0;
-  text-align: center;
-  font-family: var(--font-display), sans-serif;
-  font-size: 2.6rem;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-  color: var(--red);
-}
-.retry-clock small {
-  display: block;
-  margin-bottom: 6px;
-  font-family: var(--font-ui), sans-serif;
-  font-size: 0.72rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-}
+.table tr.win td { background: #e7f4ec; font-weight: 750; }
 
 .toast {
   position: fixed; left: 50%; bottom: 92px; transform: translateX(-50%);

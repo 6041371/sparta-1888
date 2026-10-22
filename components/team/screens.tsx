@@ -179,9 +179,10 @@ export function FinaleScreen() {
   const [suspectId, setSuspectId] = useState("");
   const [explanation, setExplanation] = useState("");
   const [message, setMessage] = useState<string | null>(null);
-  const [ok, setOk] = useState(false);
+  const [handedIn, setHandedIn] = useState(false);
   const [busy, setBusy] = useState(false);
   if (!state) return null;
+  const sealed = state.team.finaleSubmitted || handedIn;
 
   async function submit(action: "finale" | "hint") {
     setBusy(true);
@@ -190,8 +191,8 @@ export function FinaleScreen() {
       const data = await apiFinale(
         action === "hint" ? { action: "hint", code: "finale" } : { action: "finale", suspectId, explanation },
       );
-      setMessage(data.outcome.feedback || data.outcome.hint || "Verstuurd.");
-      setOk(Boolean(data.outcome.correct));
+      if (action === "hint") setMessage(data.outcome.hint || data.outcome.feedback || "Verstuurd.");
+      else setHandedIn(true);
       await refresh();
     } catch (caught) {
       setMessage(caught instanceof Error ? caught.message : "De afronding reageerde niet.");
@@ -217,13 +218,15 @@ export function FinaleScreen() {
           </div>
         ))}
       </article>
-      {message ? <Banner tone={ok || state.team.finaleSolved ? "ok" : "warn"}>{message}</Banner> : null}
-      {state.team.finaleSolved || state.team.secretVisible ? (
+      {message && !sealed ? <Banner>{message}</Banner> : null}
+      {state.team.secretVisible && state.event.secretText ? (
         <article className="paper stack">
           <span className="stamp">Geheim</span>
           <p className="serif" style={{ whiteSpace: "pre-wrap" }}>{state.event.secretText}</p>
           <Link className="btn dark" href="/spel/uitslag">Bekijk de uitslag</Link>
         </article>
+      ) : sealed ? (
+        <Banner>Jullie verklaring is binnen. Of de dader klopt, horen jullie bij de instructeur als iedereen terug is.</Banner>
       ) : state.event.finaleOpen && state.event.status !== "paused" && state.event.status !== "lobby" ? (
         <>
           <div className="stack">
@@ -262,14 +265,15 @@ export function ResultScreen() {
   return (
     <div className="stack">
       <p className="kicker">Afronding</p>
-      <h1 className="display">{state.team.finaleSolved ? "Code gekraakt" : "Jullie ronde"}</h1>
+      <h1 className="display">{state.team.secretVisible && state.team.finaleSolved ? "De dader klopt" : "Jullie ronde"}</h1>
       {state.team.secretVisible && state.event.secretText ? (
         <article className="paper stack">
           <span className="stamp">Het geheim</span>
           <p className="serif" style={{ whiteSpace: "pre-wrap" }}>{state.event.secretText}</p>
+          <p>{state.team.finaleSolved ? "Jullie hadden de dader goed." : "Jullie dader klopte niet."}</p>
         </article>
       ) : (
-        <Banner>Het geheim verschijnt als jullie de finale kraken of wanneer de organisatie de uitslag toont.</Banner>
+        <Banner>Of de dader klopt, maakt de instructeur bekend als iedereen terug is.</Banner>
       )}
     </div>
   );
