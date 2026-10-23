@@ -32,8 +32,7 @@ export const MISSION = {
   lead: "Een interactieve reis door de geschiedenis van Sparta Rotterdam. De diefstal en de verdachten zijn verzonnen.",
   body: [
     "Het standbeeld van Bok de Korver is verdwenen. In Het Kasteel ligt alleen de lege plek, en niemand heeft een verklaring die klopt.",
-    "Jullie onderzoeken de kamers die vandaag open zijn. Elke kamer heeft vragen en, waar die er is, een kort spel. Daarmee verdienen jullie bewijsstukken voor de zaakmap.",
-    "Er zijn altijd zeven bewijsstukken. Staan er minder kamers open, dan levert een kamer er meer dan één op. Jullie zien in de kamer hoeveel er te vinden zijn.",
+    "Jullie onderzoeken de kamers in Het Kasteel. Elke kamer heeft vragen en, waar die er is, een kort spel. Daarmee verdienen jullie bewijsstukken voor de zaakmap.",
     "Op het veld verschijnen Sparta-spelers zodra een kamer is afgerond. Tik een speler aan voor zijn vraag.",
     "Pas als alle zeven bewijsstukken binnen zijn, of in de laatste twintig minuten, kunnen jullie een verdachte aanwijzen.",
     "De vragen gaan over de club. De verdwijning, de bewijsstukken en de vijf verdachten zijn fictie voor dit spel.",

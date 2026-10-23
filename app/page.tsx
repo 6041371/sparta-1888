@@ -25,18 +25,12 @@ export default function HomePage() {
           <span className="stamp gold">Spelverhaal</span>
         </div>
         <p className="serif" style={{ fontSize: "1.15rem", lineHeight: 1.5 }}>
-          Het standbeeld van Bok de Korver is verdwenen. Jullie verzamelen zeven bewijsstukken in de kamers die vandaag
-          open zijn en wijzen daarna een verzonnen verdachte aan. Vul de ruimtecode van de instructeur in. Daarna alleen
-          jullie teamnaam.
+          Het standbeeld van Bok de Korver is verdwenen. Jullie zoeken uit wat er gebeurd is en wijzen daarna een verzonnen verdachte aan. Vul de ruimtecode van de instructeur in. Daarna alleen jullie teamnaam.
         </p>
         <div className="stats">
           <div className="stat">
             <b>7</b>
             <span>bewijzen</span>
-          </div>
-          <div className="stat">
-            <b>7</b>
-            <span>ruimtes</span>
           </div>
         </div>
       </article>

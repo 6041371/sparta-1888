@@ -121,7 +121,7 @@ export function StationMap() {
       <div>
         <p className="kicker">Het Kasteel</p>
         <h1 className="display">Kies je route</h1>
-        <p className="muted">Tik een kamer aan en scan de QR-code ter plekke. Minder open kamers betekent meer bewijsstukken per kamer.</p>
+        <p className="muted">Tik een kamer aan en scan de QR-code ter plekke.</p>
       </div>
       {state.event.locations.filter((location) => location.available && location.id !== "veld").length === 0 ? (
         <Banner tone="warn">Er is vandaag geen kamer open. Het spel kan pas starten als de instructeur minstens één ruimte openzet.</Banner>
