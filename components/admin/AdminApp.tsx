@@ -507,7 +507,7 @@ function QrSheet({ event }: { event: OrganizerSnapshot["event"] }) {
       <div className="spread no-print">
         <div>
           <h2 className="display">Vaste QR-codes</h2>
-          <p className="small">Deze codes horen bij de ruimte, niet bij dit evenement. Print ze één keer en gebruik ze bij elk volgend evenement.</p>
+          <p className="small">Deze codes horen bij de ruimte, niet bij dit evenement. Printen zet elke code op een eigen blad. Gebruik ze bij elk volgend evenement.</p>
         </div>
         <Button kind="paper" onClick={() => window.print()}>Printen</Button>
       </div>

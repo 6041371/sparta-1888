@@ -627,11 +627,31 @@ input[type="checkbox"] {
 @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 
 @media print {
+  @page { size: A4 portrait; margin: 14mm; }
   body { background: white; color: black; }
   body::before { display: none; }
-  .no-print { display: none !important; }
+  .no-print, .banner, .toast { display: none !important; }
   .qr-sheet { display: block !important; }
-  .app { padding: 0; width: auto; }
-  .qr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-  .qr-card { break-inside: avoid; page-break-inside: avoid; box-shadow: none; }
+  .app { padding: 0; width: auto; background: white; }
+  .qr-grid { display: block; }
+  .qr-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 250mm;
+    margin: 0;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    break-after: page;
+    page-break-after: always;
+    box-shadow: none;
+    border-radius: 0;
+    background: white;
+    color: black;
+  }
+  .qr-card:last-child { break-after: auto; page-break-after: auto; }
+  .qr-card img { width: 90mm; max-width: 90mm; }
 }
