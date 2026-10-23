@@ -89,14 +89,9 @@ export function PenaltyShootout({
         })}
       </div>
       <div className={`penalty-scene${showDive ? " dive" : ""}`}>
-        <img className="penalty-bg" src={showDive ? "/penalty/leeg.jpg" : "/penalty/start.jpg"} alt="Doel met de keeper en de bal" />
-        {showDive ? (
-          <>
-            <img className={`penalty-keeper ${last.keeper}`} src={`/penalty/keeper-${last.keeper}.png?v=2`} alt="" />
-            <img className={`penalty-ball ${last.aim} ${last.goal ? "is-goal" : "is-save"}`} src="/penalty/bal.png?v=2" alt="" />
-            <p className={`penalty-stamp ${last.goal ? "is-goal" : "is-save"}`}>{last.goal ? "Goal" : "Gered"}</p>
-          </>
-        ) : null}
+        <img className="penalty-bg" src={showDive ? `/penalty/3d/${last.keeper}.jpg` : "/penalty/3d/staan.jpg"} alt="Doel met de keeper" />
+        {showDive ? <img className={`penalty-ball ${last.aim} ${last.goal ? "is-goal" : "is-save"}`} src="/penalty/3d/bal.png" alt="" /> : null}
+        {showDive ? <p className={`penalty-stamp ${last.goal ? "is-goal" : "is-save"}`}>{last.goal ? "Goal" : "Gered"}</p> : null}
         <div className="penalty-zones">
           {ZONES.map((zone) => (
             <button key={zone} type="button" aria-label={`Schiet ${LABELS[zone].toLowerCase()}`} disabled={flying || sent || busy} onClick={() => shoot(zone)}>
