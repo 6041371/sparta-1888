@@ -39,10 +39,21 @@ export function PenaltyShootout({
   const [shots, setShots] = useState<Shot[]>([]);
   const [flying, setFlying] = useState(false);
   const [sent, setSent] = useState(false);
+  const [step, setStep] = useState(0);
   const lockRef = useRef(false);
-  const timerRef = useRef(0);
+  const timers = useRef<number[]>([]);
 
-  useEffect(() => () => window.clearTimeout(timerRef.current), []);
+  useEffect(() => {
+    for (const zone of ZONES) {
+      const mid = new Image();
+      mid.src = `/penalty/3d/${zone}-half.jpg`;
+      const full = new Image();
+      full.src = `/penalty/3d/${zone}.jpg`;
+    }
+    return () => {
+      for (const id of timers.current) window.clearTimeout(id);
+    };
+  }, []);
 
   const goals = shots.filter((shot) => shot.goal).length;
   const last = shots[shots.length - 1];
@@ -56,18 +67,27 @@ export function PenaltyShootout({
     const goal = aim !== keeper;
     const line = goal ? GOAL_LINES[shots.length] : SAVE_LINES[shots.length];
     const next = [...shots, { aim, keeper, goal, line }];
+    for (const id of timers.current) window.clearTimeout(id);
+    timers.current = [];
     setShots(next);
     setFlying(true);
-    window.clearTimeout(timerRef.current);
-    timerRef.current = window.setTimeout(() => {
+    setStep(0);
+    const arm = (delay: number, action: () => void) => {
+      const id = window.setTimeout(action, delay);
+      timers.current.push(id);
+    };
+    arm(40, () => setStep(1));
+    arm(260, () => setStep(2));
+    arm(2400, () => {
       if (next.length === 5) {
         setSent(true);
         void onFinish({ shots: next.map((shot) => shot.aim), keepers: next.map((shot) => shot.keeper) });
         return;
       }
       setFlying(false);
+      setStep(0);
       lockRef.current = false;
-    }, 2400);
+    });
   }
 
   return (
@@ -89,9 +109,11 @@ export function PenaltyShootout({
         })}
       </div>
       <div className={`penalty-scene${showDive ? " dive" : ""}`}>
-        <img className="penalty-bg" src={showDive ? `/penalty/3d/${last.keeper}.jpg` : "/penalty/3d/staan.jpg"} alt="Doel met de keeper" />
+        <img className="penalty-bg" src="/penalty/3d/staan.jpg" alt="Doel met de keeper" />
+        {showDive ? <img className={`penalty-bg dive-layer${step >= 1 ? " show" : ""}`} src={`/penalty/3d/${last.keeper}-half.jpg`} alt="" /> : null}
+        {showDive ? <img className={`penalty-bg dive-layer${step >= 2 ? " show" : ""}`} src={`/penalty/3d/${last.keeper}.jpg`} alt="" /> : null}
         {showDive ? <img className={`penalty-ball ${last.aim} ${last.goal ? "is-goal" : "is-save"}`} src="/penalty/3d/bal.png" alt="" /> : null}
-        {showDive ? <p className={`penalty-stamp ${last.goal ? "is-goal" : "is-save"}`}>{last.goal ? "Goal" : "Gered"}</p> : null}
+        {showDive && step >= 2 ? <p className={`penalty-stamp ${last.goal ? "is-goal" : "is-save"}`}>{last.goal ? "Goal" : "Gered"}</p> : null}
         <div className="penalty-zones">
           {ZONES.map((zone) => (
             <button key={zone} type="button" aria-label={`Schiet ${LABELS[zone].toLowerCase()}`} disabled={flying || sent || busy} onClick={() => shoot(zone)}>
