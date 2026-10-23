@@ -344,8 +344,12 @@ export function answersMatch(given: string, accepted: string): boolean {
   return right.every((word) => have.has(word));
 }
 
+export function normalizeQuizResponse(value: string): string {
+  return value.replace(/\r\n?|[\u2028\u2029]/g, "\n").replace(/[\u0000-\u0009\u000B-\u001F]/g, "").trim();
+}
+
 export function gradeQuiz(question: QuizQuestion, response: string): { correct: boolean; feedback: string } {
-  const text = response.trim();
+  const text = normalizeQuizResponse(response);
   if (question.kind === "creative") {
     const lines = text.split(/\n/).map((line) => line.trim()).filter(Boolean);
     if (question.minLines > 0 && lines.length < question.minLines) {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { QUIZ_LOCATIONS, QUIZ_QUESTIONS, REVIEW_ITEMS, gradeQuiz, questionsFor } from "@/lib/content/quiz";
+import { QUIZ_LOCATIONS, QUIZ_QUESTIONS, REVIEW_ITEMS, gradeQuiz, normalizeQuizResponse, questionsFor } from "@/lib/content/quiz";
 
 const ROOMS = ["bestuurskamer", "perskamer", "tribune", "museum", "kasteel", "kleedkamer", "deelderzaal"];
 
@@ -45,6 +45,7 @@ describe("vragen uit de bron", () => {
     expect(utrecht && gradeQuiz(utrecht, "FC UTRECHT").correct).toBe(true);
     expect(poem && gradeQuiz(poem, "een\ntwee\ndrie").correct).toBe(false);
     expect(poem && gradeQuiz(poem, "Nacht.\nRotterdam.\nNeon.\nDoor.").correct).toBe(true);
+    expect(poem && gradeQuiz(poem, normalizeQuizResponse("Nacht.\r\nRotterdam.\r\nNeon.\r\nDoor.")).correct).toBe(true);
   });
 
   it("zet fotovragen en vragen zonder aangegeven antwoord apart", () => {

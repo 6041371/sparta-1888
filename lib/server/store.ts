@@ -38,7 +38,7 @@ import { EVIDENCE_ITEMS, distributeEvidence, finaleUnlocked, grantByCompletion }
 import { DOSSIER_PUZZLE_ID, DOSSIER_TEXT, dossierUnlocked, requiredEvidenceIds, scorePenalty, scoreSpot, scoreVar } from "@/lib/content/minigames";
 import type { Zone } from "@/lib/content/minigames";
 import { assignPlayers } from "@/lib/content/field";
-import { FIELD_RETRY_MS, getQuestion, gradeQuiz, officialAnswer, questionsFor, type QuizQuestion } from "@/lib/content/quiz";
+import { FIELD_RETRY_MS, getQuestion, gradeQuiz, normalizeQuizResponse, officialAnswer, questionsFor, type QuizQuestion } from "@/lib/content/quiz";
 import { DEFAULT_FINALE, DEFAULT_SCORING, ROOM_CODES, ROOM_TEMPLATES, STATION_TEMPLATES, roomIdForEntryCode, stationHomeRoom } from "@/lib/server/defaults";
 import { codeFeedback, getPuzzle, PUZZLES } from "@/lib/server/puzzles";
 
@@ -1206,7 +1206,7 @@ export function submitQuiz(event: GameEvent, team: Team, questionId: string, res
   const question = getQuestion(questionId);
   if (!question) throw new GameError("Deze vraag hoort niet bij het spel.", 404);
   if (typeof response !== "string") throw new GameError("Dit antwoord is ongeldig.");
-  const text = response.replace(/[\u0000-\u001F]/g, "").trim();
+  const text = normalizeQuizResponse(response);
   if (text.length > 2000) throw new GameError("Dit antwoord is te lang.");
   if (question.locationId === "veld") {
     if (!playerUnlocked(event, team, question.id)) throw new GameError("Deze speler komt vrij als de bijbehorende kamer is afgerond.", 403);

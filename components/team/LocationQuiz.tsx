@@ -104,7 +104,10 @@ export function LocationQuiz({ locationId }: { locationId: string }) {
               ))}
             </div>
           ) : (
-            <textarea rows={question.minLines >= 4 ? 6 : 3} value={text} placeholder={question.kind === "creative" ? "Schrijf hier jullie tekst" : "Jullie antwoord"} onChange={(input) => setText(input.target.value)} />
+            <textarea rows={question.minLines >= 4 ? 6 : 3} value={text} placeholder={question.kind === "creative" ? "Elke regel met Enter" : "Jullie antwoord"} onChange={(input) => setText(input.target.value)} />
+            {question.kind === "creative" && question.minLines > 0 ? (
+              <p className="small" style={{ margin: 0 }}>{text.split(/\n/).map((line) => line.trim()).filter(Boolean).length} van minimaal {question.minLines} regels.</p>
+            ) : null}
           )}
           <Button full disabled={busy || (question.kind === "choice" ? !pick : !text.trim())} onClick={() => void check(question, question.kind === "choice" ? pick : text)}>
             {busy ? "Controleren…" : "Controleer antwoord"}
