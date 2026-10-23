@@ -509,7 +509,14 @@ function QrSheet({ event }: { event: OrganizerSnapshot["event"] }) {
           <h2 className="display">Vaste QR-codes</h2>
           <p className="small">Deze codes horen bij de ruimte, niet bij dit evenement. Printen zet elke code op een eigen blad. Gebruik ze bij elk volgend evenement.</p>
         </div>
-        <Button kind="paper" onClick={() => window.print()}>Printen</Button>
+        <Button kind="paper" onClick={() => {
+          const title = document.title;
+          document.title = " ";
+          window.addEventListener("afterprint", () => {
+            document.title = title;
+          }, { once: true });
+          window.print();
+        }}>Printen</Button>
       </div>
       <div className="qr-grid">
         {event.rooms.map((room) => (
@@ -517,7 +524,6 @@ function QrSheet({ event }: { event: OrganizerSnapshot["event"] }) {
             <img src={`/api/qr/ruimte/${room.id}`} alt={`QR-code voor ${room.name}`} />
             <h3 className="display" style={{ margin: 0, textAlign: "center" }}>{room.name}</h3>
             <p className="pad-code" style={{ fontSize: "1.4rem" }}>{ROOM_CODES[room.id] ?? room.id.toUpperCase()}</p>
-            <p className="small" style={{ textAlign: "center" }}>{room.available ? "Vandaag open" : "Vandaag gesloten"}</p>
           </article>
         ))}
       </div>

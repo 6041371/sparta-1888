@@ -627,7 +627,10 @@ input[type="checkbox"] {
 @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 
 @media print {
-  @page { size: A4 portrait; margin: 14mm; }
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
   body { background: white; color: black; }
   body::before { display: none; }
   .no-print, .banner, .toast { display: none !important; }
@@ -641,8 +644,9 @@ input[type="checkbox"] {
     justify-content: center;
     gap: 12px;
     width: 100%;
-    min-height: 250mm;
+    min-height: 270mm;
     margin: 0;
+    padding: 18mm;
     break-inside: avoid;
     page-break-inside: avoid;
     break-after: page;
