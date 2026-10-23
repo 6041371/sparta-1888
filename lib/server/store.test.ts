@@ -103,10 +103,17 @@ describe("opslag van een spelevenement", () => {
 
     await store.mutateTeam(login.token, (event, team) => {
       team.collectedEvidenceIds = required;
+      team.visitedRooms = ["deelderzaal"];
       return team.collectedEvidenceIds;
     }, t0 + 15);
     const openState = await store.teamContext(login.token, t0 + 16);
-    expect(toTeamSnapshot(openState.event, openState.team, t0 + 16).event.codeGate.unlocked).toBe(true);
+    const openSnap = toTeamSnapshot(openState.event, openState.team, t0 + 16);
+    expect(openSnap.event.codeGate.unlocked).toBe(true);
+    expect(openSnap.event.codeGate.entryCode).toBe(station!.code);
+    const deelder = openSnap.event.locations.find((item) => item.id === "deelderzaal");
+    expect(deelder?.minigames[0]?.title).toBe("Spot de verdachte");
+    expect(deelder?.minigames.at(-1)?.title).toBe("Crack the Code");
+    expect(deelder?.minigames.at(-1)?.locked).toBeNull();
 
     const wrong = await store.mutateTeam(login.token, (event, team, now) => submitCode(event, team, station!.code, "1111", now), t0 + 17);
     expect(wrong.correct).toBe(false);

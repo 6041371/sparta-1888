@@ -243,6 +243,7 @@ export interface PublicEvent {
     foundIds: string[];
     unlocked: boolean;
     solved: boolean;
+    entryCode: string | null;
   };
 }
 

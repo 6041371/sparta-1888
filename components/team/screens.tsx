@@ -68,6 +68,7 @@ export function Dashboard() {
       </section>
       <article className="paper dark stack">
         <p className="small">Hints over: {team.hintsLeft}.</p>
+        {event.codeGate.entryCode && !event.codeGate.solved ? <Link className="btn primary full" href={`/spel/station/${event.codeGate.entryCode}`}>Crack the Code is open</Link> : null}
         {event.finaleOpen ? <Link className="btn primary full" href="/spel/finale">Naar de finale</Link> : <p className="small" style={{ margin: 0 }}>Tik een kamer aan en scan daar de QR-code. De finale opent bij 7 van de 7 bewijsstukken, of in de laatste 20 minuten.</p>}
       </article>
       {event.locations.filter((location) => location.available && location.id !== "veld").length === 0 ? (
@@ -137,6 +138,7 @@ export function ClueBook() {
     <div className="stack">
       <h1 className="display">Zaakmap</h1>
       <p>{state.event.evidenceCollected} van de {state.event.evidenceTotal} bewijsstukken.</p>
+      {state.event.codeGate.entryCode && !state.event.codeGate.solved ? <Link className="btn primary full" href={`/spel/station/${state.event.codeGate.entryCode}`}>Crack the Code is open</Link> : null}
       {state.event.evidence.map((item) => item.found ? (
         <article key={item.id} className="clue">
           <p className="kicker">Bewijsstuk {item.order}</p>

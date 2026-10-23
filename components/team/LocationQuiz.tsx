@@ -128,7 +128,7 @@ export function LocationQuiz({ locationId }: { locationId: string }) {
         <article className="paper stack">
           <p className="kicker">Kort spel</p>
           <h1 className="display">{games.length === 1 ? games[0].title : `${games.length} spellen`}</h1>
-          <p>Dit hoort bij {location.name}. Jullie spelen elk spel één keer. Spot de verdachte is het eerste spel. Crack the Code wacht op de aanwijzingen.</p>
+          <p>In welke kamer je ook begint: Spot de verdachte is het eerste spel. Daarna het spel van deze kamer. Crack the Code verschijnt zodra de vier aanwijzingen binnen zijn.</p>
           {games.map((game) => (
             <div key={game.title} className="stack">
               <h2 className="serif">{game.title}</h2>

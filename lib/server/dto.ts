@@ -123,17 +123,23 @@ export function toTeamSnapshot(event: GameEvent, team: Team, now: number): TeamS
       .filter((item) => item.roomId === location.id && item.enabled)
       .sort((a, b) => gameOrder(a.game) - gameOrder(b.game) || a.name.localeCompare(b.name));
     const blocking = hosted.filter((item) => item.game !== "code");
-    const spotDone = event.stations
-      .filter((item) => item.enabled && item.game === "spot")
-      .every((item) => current.completions.some((completion) => completion.stationId === item.id));
+    const spotStation = event.stations.find((item) => item.enabled && item.game === "spot" && stationVisible(item, event.rooms)) ?? null;
+    const codeStation = event.stations.find((item) => item.enabled && item.game === "code" && stationVisible(item, event.rooms)) ?? null;
+    const spotDone = !spotStation || current.completions.some((completion) => completion.stationId === spotStation.id);
     const codeOpen = dossierUnlocked(requiredEvidenceIds(assignments, codeHome(event)), [...(current.collectedEvidenceIds ?? [])]);
-    const minigames = hosted.map((item) => ({
+    const here = field || visited.includes(location.id);
+    const card = (item: GameEvent["stations"][number]) => ({
       title: GAME_TITLES[item.game],
       summary: GAME_SUMMARIES[item.game],
       done: current.completions.some((completion) => completion.stationId === item.id),
-      code: field || visited.includes(location.id) ? item.code : null,
+      code: here ? item.code : null,
       locked: lockReason(item.game, spotDone, codeOpen),
-    }));
+    });
+    const minigames = hosted.map(card);
+    if (!field && here && spotStation && !spotDone && !hosted.some((item) => item.id === spotStation.id)) minigames.unshift(card(spotStation));
+    if (!field && here && codeStation && codeOpen && !current.completions.some((completion) => completion.stationId === codeStation.id) && !hosted.some((item) => item.id === codeStation.id)) {
+      minigames.push(card(codeStation));
+    }
     const pending = minigames.find((item) => !item.done) ?? minigames[0] ?? null;
     const minigameDone = blocking.every((item) => current.completions.some((completion) => completion.stationId === item.id));
     const closedCount = questions.filter((question) => closedIds.has(question.id)).length;
@@ -255,11 +261,13 @@ export function toTeamSnapshot(event: GameEvent, team: Team, now: number): TeamS
 function codeGateFor(event: GameEvent, team: Team, found: Set<string>) {
   const station = event.stations.find((item) => item.puzzleId === DOSSIER_PUZZLE_ID && item.enabled) ?? null;
   const requiredIds = requiredEvidenceIds(event.evidenceAssignments ?? {}, station ? stationHomeRoom(station.id, station.roomId) : null);
+  const unlocked = dossierUnlocked(requiredIds, [...found]);
   return {
     requiredIds,
     foundIds: requiredIds.filter((id) => found.has(id)),
-    unlocked: dossierUnlocked(requiredIds, [...found]),
+    unlocked,
     solved: Boolean(station && team.completions.some((item) => item.stationId === station.id)),
+    entryCode: unlocked && station && stationVisible(station, event.rooms) ? station.code : null,
   };
 }
 
