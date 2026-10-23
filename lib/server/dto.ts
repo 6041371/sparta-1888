@@ -1,5 +1,5 @@
 import { EVIDENCE_ITEMS, evidenceProgress, finaleUnlocked } from "@/lib/content/evidence";
-import { DOSSIER_PUZZLE_ID, dossierUnlocked, requiredEvidenceIds } from "@/lib/content/minigames";
+import { DOSSIER_PUZZLE_ID, codeIsFourth, requiredEvidenceIds } from "@/lib/content/minigames";
 import { assignPlayers, FIELD_PLAYERS } from "@/lib/content/field";
 import { FIELD_RETRY_MS, QUIZ_LOCATIONS, getQuestion, publicQuestion, questionsFor } from "@/lib/content/quiz";
 import { GAME_SUMMARIES, GAME_TITLES } from "@/lib/copy";
@@ -26,14 +26,9 @@ function gameOrder(game: GameType) {
 }
 
 function lockReason(game: GameType, spotDone: boolean, codeOpen: boolean) {
-  if (game === "code" && !codeOpen) return "Deze code gaat open als jullie de gevraagde aanwijzingen hebben.";
+  if (game === "code" && !codeOpen) return "Crack the Code is het vierde spel.";
   if (game !== "spot" && game !== "code" && !spotDone) return "Speel eerst Spot de verdachte.";
   return null;
-}
-
-function codeHome(event: GameEvent) {
-  const station = event.stations.find((item) => item.puzzleId === DOSSIER_PUZZLE_ID && item.enabled);
-  return station ? stationHomeRoom(station.id, station.roomId) : null;
 }
 
 function finaleLeak(team: Team) {
@@ -126,19 +121,24 @@ export function toTeamSnapshot(event: GameEvent, team: Team, now: number): TeamS
     const spotStation = event.stations.find((item) => item.enabled && item.game === "spot" && stationVisible(item, event.rooms)) ?? null;
     const codeStation = event.stations.find((item) => item.enabled && item.game === "code" && stationVisible(item, event.rooms)) ?? null;
     const spotDone = !spotStation || current.completions.some((completion) => completion.stationId === spotStation.id);
-    const codeOpen = dossierUnlocked(requiredEvidenceIds(assignments, codeHome(event)), [...(current.collectedEvidenceIds ?? [])]);
+    const codeTurn = codeIsFourth(current.completions.map((item) => item.game));
     const here = field || visited.includes(location.id);
     const card = (item: GameEvent["stations"][number]) => ({
       title: GAME_TITLES[item.game],
       summary: GAME_SUMMARIES[item.game],
       done: current.completions.some((completion) => completion.stationId === item.id),
       code: here ? item.code : null,
-      locked: lockReason(item.game, spotDone, codeOpen),
+      locked: lockReason(item.game, spotDone, codeTurn),
     });
-    const minigames = hosted.map(card);
+    const minigames = hosted.filter((item) => item.game !== "code").map(card);
     if (!field && here && spotStation && !spotDone && !hosted.some((item) => item.id === spotStation.id)) minigames.unshift(card(spotStation));
-    if (!field && here && codeStation && codeOpen && !current.completions.some((completion) => completion.stationId === codeStation.id) && !hosted.some((item) => item.id === codeStation.id)) {
-      minigames.push(card(codeStation));
+    if (!field && here && codeStation && codeTurn) {
+      const codeCard = card(codeStation);
+      if (codeCard.done) minigames.push(codeCard);
+      else {
+        const spotAt = minigames.findIndex((item) => item.title === GAME_TITLES.spot && !item.done);
+        minigames.splice(spotAt >= 0 ? spotAt + 1 : 0, 0, codeCard);
+      }
     }
     const pending = minigames.find((item) => !item.done) ?? minigames[0] ?? null;
     const minigameDone = blocking.every((item) => current.completions.some((completion) => completion.stationId === item.id));
@@ -261,7 +261,7 @@ export function toTeamSnapshot(event: GameEvent, team: Team, now: number): TeamS
 function codeGateFor(event: GameEvent, team: Team, found: Set<string>) {
   const station = event.stations.find((item) => item.puzzleId === DOSSIER_PUZZLE_ID && item.enabled) ?? null;
   const requiredIds = requiredEvidenceIds(event.evidenceAssignments ?? {}, station ? stationHomeRoom(station.id, station.roomId) : null);
-  const unlocked = dossierUnlocked(requiredIds, [...found]);
+  const unlocked = codeIsFourth(team.completions.map((item) => item.game));
   return {
     requiredIds,
     foundIds: requiredIds.filter((id) => found.has(id)),

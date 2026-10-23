@@ -35,11 +35,11 @@ import type {
   TieBreaker,
 } from "@/lib/types";
 import { EVIDENCE_ITEMS, distributeEvidence, finaleUnlocked, grantByCompletion } from "@/lib/content/evidence";
-import { DOSSIER_PUZZLE_ID, DOSSIER_TEXT, dossierUnlocked, requiredEvidenceIds, scorePenalty, scoreSpot, scoreVar } from "@/lib/content/minigames";
+import { DOSSIER_PUZZLE_ID, DOSSIER_TEXT, codeIsFourth, scorePenalty, scoreSpot, scoreVar } from "@/lib/content/minigames";
 import type { Zone } from "@/lib/content/minigames";
 import { assignPlayers } from "@/lib/content/field";
 import { FIELD_RETRY_MS, getQuestion, gradeQuiz, normalizeQuizResponse, officialAnswer, questionsFor, type QuizQuestion } from "@/lib/content/quiz";
-import { DEFAULT_FINALE, DEFAULT_SCORING, ROOM_CODES, ROOM_TEMPLATES, STATION_TEMPLATES, roomIdForEntryCode, stationHomeRoom } from "@/lib/server/defaults";
+import { DEFAULT_FINALE, DEFAULT_SCORING, ROOM_CODES, ROOM_TEMPLATES, STATION_TEMPLATES, roomIdForEntryCode } from "@/lib/server/defaults";
 import { codeFeedback, getPuzzle, PUZZLES } from "@/lib/server/puzzles";
 
 interface Database {
@@ -892,12 +892,8 @@ export function submitCode(event: GameEvent, team: Team, code: string, answer: u
     };
   }
   const puzzle = getPuzzle(station.puzzleId);
-  if (puzzle.id === DOSSIER_PUZZLE_ID) {
-    ensureAssignments(event);
-    const required = requiredEvidenceIds(event.evidenceAssignments ?? {}, stationHomeRoom(station.id, station.roomId));
-    if (!dossierUnlocked(required, team.collectedEvidenceIds ?? [])) {
-      throw new GameError("Dit dossier is nog vergrendeld. Verzamel eerst de ontbrekende aanwijzingen.");
-    }
+  if (puzzle.id === DOSSIER_PUZZLE_ID && !codeIsFourth(team.completions.map((item) => item.game))) {
+    throw new GameError("Dit dossier is nog vergrendeld. Crack the Code is het vierde spel.");
   }
   const given = typeof answer === "string" ? answer : "";
   if (normCode(given) !== normCode(puzzle.answer)) {
@@ -925,12 +921,8 @@ export function takeHint(event: GameEvent, team: Team, code: string, now: number
   } else {
     const station = event.stations.find((item) => item.id === key);
     if (!station || station.game !== "code") throw new GameError("Voor deze opdracht is geen hint beschikbaar.");
-    if (station.puzzleId === DOSSIER_PUZZLE_ID) {
-      ensureAssignments(event);
-      const required = requiredEvidenceIds(event.evidenceAssignments ?? {}, stationHomeRoom(station.id, station.roomId));
-      if (!dossierUnlocked(required, team.collectedEvidenceIds ?? [])) {
-        throw new GameError("De hint opent pas als de ontbrekende aanwijzingen binnen zijn.");
-      }
+    if (station.puzzleId === DOSSIER_PUZZLE_ID && !codeIsFourth(team.completions.map((item) => item.game))) {
+      throw new GameError("De hint opent pas als Crack the Code aan de beurt is.");
     }
     hint = getPuzzle(station.puzzleId).hint;
   }

@@ -208,7 +208,6 @@ function DossierBlock({
   return (
     <DossierCode
       puzzle={puzzle}
-      evidence={state.event.evidence}
       gate={state.event.codeGate}
       busy={busy}
       hintUsed={hintUsed}

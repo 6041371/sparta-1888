@@ -25,6 +25,10 @@ export function dossierUnlocked(requiredIds: string[], collectedIds: string[]): 
   return requiredIds.every((id) => have.has(id));
 }
 
+export function codeIsFourth(completedGames: string[]): boolean {
+  return completedGames.filter((game) => game !== "code").length >= 3;
+}
+
 export const DOSSIER_TEXT =
   "Het dossier koppelt de reservering, het transport van een bronzen sportobject en een handelaar in historische sportmemorabilia. Leg dit naast de rest van de zaakmap. Dit is nog geen eindconclusie.";
 

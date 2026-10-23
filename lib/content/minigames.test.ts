@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { EVIDENCE_ITEMS, distributeEvidence } from "@/lib/content/evidence";
 import {
   DOSSIER_CODE,
+  codeIsFourth,
   dossierUnlocked,
   requiredEvidenceIds,
   scorePenalty,
@@ -21,6 +22,9 @@ describe("minigames", () => {
     expect(dossierUnlocked(required, required)).toBe(true);
     expect(DOSSIER_CODE).toBe("7088");
     expect(new Set(DOSSIER_CODE).size).toBe(3);
+    expect(codeIsFourth(["spot", "reaction"])).toBe(false);
+    expect(codeIsFourth(["spot", "reaction", "memory"])).toBe(true);
+    expect(codeIsFourth(["spot", "reaction", "memory", "code"])).toBe(true);
   });
 
   it("maakt de code nog oplosbaar als het transportdocument aan de codekamer zelf hangt", () => {

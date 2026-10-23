@@ -331,7 +331,7 @@ function Rooms({
 }) {
   return (
     <div className="stack">
-      <p>Zet een ruimte uit als die niet gebruikt mag worden. De minigames van dichte ruimtes schuiven vanzelf door naar de open ruimtes, zodat alle zeven spellen gespeeld worden. Spot de verdachte staat altijd als eerste. Crack the Code blijft dicht tot de aanwijzingen binnen zijn.</p>
+      <p>Zet een ruimte uit als die niet gebruikt mag worden. De minigames van dichte ruimtes schuiven vanzelf door naar de open ruimtes, zodat alle zeven spellen gespeeld worden. Spot de verdachte staat altijd als eerste. Crack the Code is altijd het vierde spel, in welke kamer het team dan ook staat.</p>
       {event.rooms.map((room) => {
         const stations = event.stations.filter((station) => station.roomId === room.id);
         return (
@@ -393,7 +393,7 @@ function GamesGuide({ event }: { event: OrganizerSnapshot["event"] }) {
   const games = [
     ["reaction", "Reactietest", "Twaalf portretten. Tik alleen bij Bok de Korver."],
     ["memory", "Geheugenspel", "Zes Spartanen, elk twee keer. De naam staat op de kaart."],
-    ["code", "Crack the Code", "Het dossier opent pas als het team de vier aanwijzingen heeft. Het antwoord staat alleen op de server."],
+    ["code", "Crack the Code", "Dit is het vierde spel, in welke kamer het team dan ook staat. De hints staan bij het spel. Het antwoord staat alleen op de server."],
     ["photo", "Foto-opdracht", "Het team stuurt een foto. Jij beoordeelt creativiteit, samenwerking en uitvoering."],
     ["penalty", "Penaltyreeks", "Vijf schoten op het doel. De keeper duikt per poging links, midden of rechts."],
     ["var", "VAR-check", "Drie beelden. Bij Sparta-RKC is de penalty onterecht."],

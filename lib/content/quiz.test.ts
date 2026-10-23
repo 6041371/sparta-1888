@@ -48,6 +48,19 @@ describe("vragen uit de bron", () => {
     expect(poem && gradeQuiz(poem, normalizeQuizResponse("Nacht.\r\nRotterdam.\r\nNeon.\r\nDoor.")).correct).toBe(true);
   });
 
+  it("wisselt de juiste letter in de bestuurskamer", () => {
+    const letters = questionsFor("bestuurskamer")
+      .filter((question) => question.kind === "choice")
+      .map((question) => question.answer);
+    expect(letters).toEqual(["c", "a", "d", "a", "c", "d", "a", "c", "d"]);
+    const veto = QUIZ_QUESTIONS.find((question) => question.id === "bk-3");
+    const topscorer = QUIZ_QUESTIONS.find((question) => question.id === "bk-10");
+    expect(veto && gradeQuiz(veto, "d").correct).toBe(true);
+    expect(veto && gradeQuiz(veto, "b").correct).toBe(false);
+    expect(topscorer && gradeQuiz(topscorer, "c").correct).toBe(true);
+    expect(topscorer && gradeQuiz(topscorer, "b").correct).toBe(false);
+  });
+
   it("zet fotovragen en vragen zonder aangegeven antwoord apart", () => {
     expect(REVIEW_ITEMS.some((item) => /klok/i.test(item.text))).toBe(true);
     expect(REVIEW_ITEMS.some((item) => /1988/i.test(item.text))).toBe(true);
