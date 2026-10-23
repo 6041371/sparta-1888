@@ -479,18 +479,6 @@ input[type="checkbox"] {
   top: 59%;
   z-index: 3;
 }
-.penalty-ball.links.is-goal { left: 27%; top: 26%; animation: fly-links-goal 0.55s ease-in; }
-.penalty-ball.midden.is-goal { left: 47%; top: 18%; animation: fly-midden-goal 0.55s ease-in; }
-.penalty-ball.rechts.is-goal { left: 67%; top: 26%; animation: fly-rechts-goal 0.55s ease-in; }
-.penalty-ball.links.is-save { left: 28%; top: 32%; animation: fly-links-save 0.5s ease-out; }
-.penalty-ball.midden.is-save { left: 46%; top: 26%; animation: fly-midden-save 0.5s ease-out; }
-.penalty-ball.rechts.is-save { left: 64%; top: 32%; animation: fly-rechts-save 0.5s ease-out; }
-@keyframes fly-links-goal { from { left: 47.2%; top: 59%; } to { left: 27%; top: 26%; } }
-@keyframes fly-midden-goal { from { left: 47.2%; top: 59%; } to { left: 47%; top: 18%; } }
-@keyframes fly-rechts-goal { from { left: 47.2%; top: 59%; } to { left: 67%; top: 26%; } }
-@keyframes fly-links-save { from { left: 47.2%; top: 59%; } to { left: 28%; top: 32%; } }
-@keyframes fly-midden-save { from { left: 47.2%; top: 59%; } to { left: 46%; top: 26%; } }
-@keyframes fly-rechts-save { from { left: 47.2%; top: 59%; } to { left: 64%; top: 32%; } }
 .penalty-stamp {
   position: absolute;
   top: 12px;
@@ -518,18 +506,18 @@ input[type="checkbox"] {
 .penalty-line.is-save { color: #f3c2c8; }
 .penalty-zones {
   position: absolute;
-  left: 15%;
-  right: 15%;
+  left: 16%;
+  right: 16%;
   top: 7%;
-  height: 40%;
+  height: 38%;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  gap: 0;
   z-index: 4;
 }
 .penalty-zones button {
   border: 2px solid rgba(255, 255, 255, 0.9);
-  border-radius: 14px;
+  border-radius: 8px;
   background: linear-gradient(to top, rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0.08) 50%);
   color: white;
   font-weight: 800;

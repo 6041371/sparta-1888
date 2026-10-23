@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import type { Zone } from "@/lib/content/minigames";
 
 const ZONES: Zone[] = ["links", "midden", "rechts"];
@@ -27,6 +27,8 @@ interface Shot {
   keeper: Zone;
   goal: boolean;
   line: string;
+  x: number;
+  y: number;
 }
 
 export function PenaltyShootout({
@@ -41,6 +43,8 @@ export function PenaltyShootout({
   const [sent, setSent] = useState(false);
   const lockRef = useRef(false);
   const timerRef = useRef(0);
+  const sceneRef = useRef<HTMLDivElement>(null);
+  const ballRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => () => window.clearTimeout(timerRef.current), []);
 
@@ -49,13 +53,35 @@ export function PenaltyShootout({
   const showDive = flying && last;
   const number = Math.min(shots.length + (flying || sent ? 0 : 1), 5);
 
-  function shoot(aim: Zone) {
+  useEffect(() => {
+    const ball = ballRef.current;
+    if (!ball || !showDive || !last) return;
+    const flight = ball.animate(
+      [
+        { left: "47.2%", top: "59%" },
+        { left: `${last.x}%`, top: `${last.y}%` },
+      ],
+      { duration: 550, easing: "ease-in", fill: "forwards" },
+    );
+    return () => flight.cancel();
+  }, [showDive, last]);
+
+  function shoot(aim: Zone, event: MouseEvent<HTMLButtonElement>) {
     if (lockRef.current || sent || busy || shots.length >= 5) return;
     lockRef.current = true;
+    const scene = sceneRef.current?.getBoundingClientRect();
+    const button = event.currentTarget.getBoundingClientRect();
+    const pointer = event.detail === 0
+      ? { x: button.left + button.width / 2, y: button.top + button.height / 2 }
+      : { x: event.clientX, y: event.clientY };
+    const rawX = scene && scene.width > 0 ? ((pointer.x - scene.left) / scene.width) * 100 - 2.8 : 47;
+    const rawY = scene && scene.height > 0 ? ((pointer.y - scene.top) / scene.height) * 100 - 3.7 : 28;
+    const x = Math.min(90, Math.max(8, rawX));
+    const y = Math.min(52, Math.max(6, rawY));
     const keeper = ZONES[Math.floor(Math.random() * ZONES.length)];
     const goal = aim !== keeper;
     const line = goal ? GOAL_LINES[shots.length] : SAVE_LINES[shots.length];
-    const next = [...shots, { aim, keeper, goal, line }];
+    const next = [...shots, { aim, keeper, goal, line, x, y }];
     setShots(next);
     setFlying(true);
     window.clearTimeout(timerRef.current);
@@ -88,25 +114,25 @@ export function PenaltyShootout({
           );
         })}
       </div>
-      <div className={`penalty-scene${showDive ? " dive" : ""}`}>
+      <div className={`penalty-scene${showDive ? " dive" : ""}`} ref={sceneRef}>
         <img className="penalty-bg" src={showDive ? "/penalty/leeg.jpg" : "/penalty/start.jpg"} alt="Doel met de keeper en de bal" />
         {showDive ? (
           <>
             <img className={`penalty-keeper ${last.keeper}`} src={`/penalty/keeper-${last.keeper}.png?v=2`} alt="" />
-            <img className={`penalty-ball ${last.aim} ${last.goal ? "is-goal" : "is-save"}`} src="/penalty/bal.png?v=2" alt="" />
+            <img ref={ballRef} className="penalty-ball" src="/penalty/bal.png?v=2" alt="" />
             <p className={`penalty-stamp ${last.goal ? "is-goal" : "is-save"}`}>{last.goal ? "Goal" : "Gered"}</p>
           </>
         ) : null}
         <div className="penalty-zones">
           {ZONES.map((zone) => (
-            <button key={zone} type="button" aria-label={`Schiet ${LABELS[zone].toLowerCase()}`} disabled={flying || sent || busy} onClick={() => shoot(zone)}>
+            <button key={zone} type="button" aria-label={`Schiet ${LABELS[zone].toLowerCase()}`} disabled={flying || sent || busy} onClick={(event) => shoot(zone, event)}>
               {LABELS[zone]}
             </button>
           ))}
         </div>
       </div>
       <p className={`penalty-line${showDive ? (last.goal ? " is-goal" : " is-save") : ""}`} aria-live="polite">
-        {showDive ? last.line : "Tik links, midden of rechts in het doel."}
+        {showDive ? last.line : "Tik in het doel. De bal gaat naar die plek."}
       </p>
     </div>
   );
