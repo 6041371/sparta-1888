@@ -474,9 +474,9 @@ input[type="checkbox"] {
 .penalty-keeper.links { width: 38%; left: 14%; top: 20%; z-index: 2; }
 .penalty-keeper.rechts { width: 38%; left: 48%; top: 20%; z-index: 2; }
 .penalty-ball {
-  width: 5.6%;
-  left: 47.2%;
-  top: 59%;
+  width: 11%;
+  left: 44.5%;
+  top: 67%;
   z-index: 3;
 }
 .penalty-stamp {
@@ -506,10 +506,10 @@ input[type="checkbox"] {
 .penalty-line.is-save { color: #f3c2c8; }
 .penalty-zones {
   position: absolute;
-  left: 16%;
-  right: 16%;
-  top: 7%;
-  height: 38%;
+  left: 8%;
+  right: 8%;
+  top: 5%;
+  height: 55%;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0;

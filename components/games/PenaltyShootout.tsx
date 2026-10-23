@@ -58,7 +58,7 @@ export function PenaltyShootout({
     if (!ball || !showDive || !last) return;
     const flight = ball.animate(
       [
-        { left: "47.2%", top: "59%" },
+        { left: "44.5%", top: "67%" },
         { left: `${last.x}%`, top: `${last.y}%` },
       ],
       { duration: 550, easing: "ease-in", fill: "forwards" },
@@ -74,10 +74,10 @@ export function PenaltyShootout({
     const pointer = event.detail === 0
       ? { x: button.left + button.width / 2, y: button.top + button.height / 2 }
       : { x: event.clientX, y: event.clientY };
-    const rawX = scene && scene.width > 0 ? ((pointer.x - scene.left) / scene.width) * 100 - 2.8 : 47;
-    const rawY = scene && scene.height > 0 ? ((pointer.y - scene.top) / scene.height) * 100 - 3.7 : 28;
-    const x = Math.min(90, Math.max(8, rawX));
-    const y = Math.min(52, Math.max(6, rawY));
+    const rawX = scene && scene.width > 0 ? ((pointer.x - scene.left) / scene.width) * 100 - 5.5 : 44.5;
+    const rawY = scene && scene.height > 0 ? ((pointer.y - scene.top) / scene.height) * 100 - 7.3 : 30;
+    const x = Math.min(84, Math.max(4, rawX));
+    const y = Math.min(52, Math.max(4, rawY));
     const keeper = ZONES[Math.floor(Math.random() * ZONES.length)];
     const goal = aim !== keeper;
     const line = goal ? GOAL_LINES[shots.length] : SAVE_LINES[shots.length];
@@ -115,11 +115,10 @@ export function PenaltyShootout({
         })}
       </div>
       <div className={`penalty-scene${showDive ? " dive" : ""}`} ref={sceneRef}>
-        <img className="penalty-bg" src={showDive ? "/penalty/leeg.jpg" : "/penalty/start.jpg"} alt="Doel met de keeper en de bal" />
+        <img className="penalty-bg" src={showDive ? `/penalty/3d/${last.keeper}.jpg` : "/penalty/3d/staan.jpg"} alt="Doel met de keeper" />
         {showDive ? (
           <>
-            <img className={`penalty-keeper ${last.keeper}`} src={`/penalty/keeper-${last.keeper}.png?v=2`} alt="" />
-            <img ref={ballRef} className="penalty-ball" src="/penalty/bal.png?v=2" alt="" />
+            <img ref={ballRef} className="penalty-ball" src="/penalty/3d/bal.png" alt="" />
             <p className={`penalty-stamp ${last.goal ? "is-goal" : "is-save"}`}>{last.goal ? "Goal" : "Gered"}</p>
           </>
         ) : null}
