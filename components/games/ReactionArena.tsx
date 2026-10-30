@@ -69,19 +69,19 @@ export function ReactionArena({
         setPlayer(null);
         setFlash(null);
         tapAt.current = null;
-        await wait(280 + Math.floor(Math.random() * 420));
+        await wait(420 + Math.floor(Math.random() * 520));
         if (cancelled) return;
         if (tapAt.current !== null) {
           results.push({ target: true, tapped: true, reactionMs: 1 });
           setFlash("bad");
           setNote("Te vroeg.");
-          await wait(280);
+          await wait(420);
           continue;
         }
         const shown = performance.now();
         tapAt.current = null;
         setPlayer(face ?? null);
-        const limit = isBok ? 820 : 480;
+        const limit = isBok ? 1200 : 720;
         await new Promise<void>((resolve) => {
           const id = window.setInterval(() => {
             if (cancelled || tapAt.current !== null || performance.now() - shown >= limit) {
@@ -117,7 +117,7 @@ export function ReactionArena({
           setFlash("bad");
           setNote(face ? `Niet tikken. Dat is ${face.name}.` : "Niet tikken.");
         }
-        await wait(320);
+        await wait(480);
       }
       if (cancelled) return;
       const times = results
