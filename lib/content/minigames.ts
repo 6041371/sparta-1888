@@ -70,18 +70,6 @@ export interface VarRound {
 
 export const VAR_ROUNDS: VarRound[] = [
   {
-    id: "var-1",
-    prompt: "De aanvaller in het rood staat verder van de bal dan de laatste verdediger. Wat is de beslissing?",
-    scene: "buitenspel",
-    options: [
-      { id: "buitenspel", label: "Buitenspel" },
-      { id: "geen", label: "Geen buitenspel" },
-      { id: "penalty", label: "Penalty" },
-    ],
-    answer: "buitenspel",
-    explanation: "De rode aanvaller staat dichter bij de doellijn dan de bal en dan de laatste verdediger. Dat is buitenspel.",
-  },
-  {
     id: "var-2",
     prompt: "De scheidsrechter geeft Sparta een penalty na een duel in het strafschopgebied. Wat is volgens jou de juiste beslissing?",
     scene: "tackle",
@@ -94,18 +82,6 @@ export const VAR_ROUNDS: VarRound[] = [
     answer: "b",
     explanation: "Geen penalty. In het duel is geen overtreding gemaakt, dus de penalty is onterecht.",
   },
-  {
-    id: "var-3",
-    prompt: "De verdediger raakt eerst de bal, niet de tegenstander. Wat is de beslissing?",
-    scene: "tackle",
-    options: [
-      { id: "correct", label: "Correcte tackle" },
-      { id: "overtreding", label: "Overtreding" },
-      { id: "rood", label: "Rode kaart" },
-    ],
-    answer: "correct",
-    explanation: "De verdediger speelt de bal. Er is geen trap tegen de tegenstander. De tackle is correct.",
-  },
 ];
 
 export function scoreVar(answers: string[], pointsMax: number): ScoreResult & { correct: number } {
@@ -117,7 +93,7 @@ export function scoreVar(answers: string[], pointsMax: number): ScoreResult & { 
   return {
     correct,
     points: Math.round((pointsMax * correct) / VAR_ROUNDS.length),
-    breakdown: `${correct} van ${VAR_ROUNDS.length} beslissingen goed.`,
+    breakdown: `${correct} van ${VAR_ROUNDS.length} ${VAR_ROUNDS.length === 1 ? "beslissing" : "beslissingen"} goed.`,
   };
 }
 

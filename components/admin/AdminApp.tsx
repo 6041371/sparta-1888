@@ -396,7 +396,7 @@ function GamesGuide({ event }: { event: OrganizerSnapshot["event"] }) {
     ["code", "Crack the Code", "Dit is het vierde spel, in welke kamer het team dan ook staat. De hints staan bij het spel. Het antwoord staat alleen op de server."],
     ["photo", "Foto-opdracht", "Het team stuurt een foto. Jij beoordeelt creativiteit, samenwerking en uitvoering."],
     ["penalty", "Penaltyreeks", "Vijf schoten op het doel. De keeper duikt per poging links, midden of rechts."],
-    ["var", "VAR-check", "Drie beelden. Bij Sparta-RKC is de penalty onterecht."],
+    ["var", "VAR-check", "Eén beeld. Bij Sparta-RKC is de penalty onterecht."],
     ["spot", "Spot de verdachte", "Vijf camera's. Het meest verdachte beeld is CAM 5. Dit is het eerste spel."],
   ] as const;
   const testing = event.stations.find((station) => station.id === testingId) ?? null;

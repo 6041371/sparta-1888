@@ -509,13 +509,13 @@ describe("opslag van een spelevenement", () => {
 
     const decisions = await store.mutateTeam(
       login.token,
-      (event, team, at) => submitVar(event, team, variable!.code, ["buitenspel", "b", "correct"], at),
+      (event, team, at) => submitVar(event, team, variable!.code, ["b"], at),
       now + 7,
     );
-    expect(decisions.breakdown).toContain("3 van 3");
+    expect(decisions.breakdown).toContain("1 van 1");
     const repeatVar = await store.mutateTeam(
       login.token,
-      (event, team, at) => submitVar(event, team, variable!.code, ["geen", "geen", "geen"], at),
+      (event, team, at) => submitVar(event, team, variable!.code, ["a"], at),
       now + 8,
     );
     expect(repeatVar.awarded).toBe(0);

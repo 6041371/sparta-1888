@@ -51,8 +51,9 @@ describe("minigames", () => {
 
   it("beoordeelt de VAR op de beelden en spot op de verdachte, ongeacht de kaartvolgorde", () => {
     const answers = VAR_ROUNDS.map((round) => round.answer);
-    expect(scoreVar(answers, 90).correct).toBe(3);
-    expect(scoreVar(["geen", "b", "correct"], 90).correct).toBe(2);
+    expect(scoreVar(answers, 90).correct).toBe(1);
+    expect(scoreVar(answers, 90).points).toBe(90);
+    expect(scoreVar(["a"], 90).correct).toBe(0);
     expect(scoreSpot("cam-5", 100).correct).toBe(true);
     expect(scoreSpot("cam-1", 100).correct).toBe(false);
     expect(scoreSpot("cam-5", 100).points).toBeGreaterThan(scoreSpot("cam-1", 100).points);

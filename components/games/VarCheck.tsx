@@ -41,8 +41,8 @@ export function VarCheck({
       <div className="stack">
         <article className="paper stack">
           <p className="kicker">VAR-check</p>
-          <h2 className="display">Drie beslissingen</h2>
-          <p>Bekijk het beeld en kies wat de scheidsrechter moet fluiten. Elke ronde heeft één kloppend antwoord.</p>
+          <h2 className="display">Eén beslissing</h2>
+          <p>Bekijk het beeld en kies wat de scheidsrechter moet fluiten. Er is één kloppend antwoord.</p>
         </article>
         <Button full disabled={busy} onClick={() => setStarted(true)}>Open de beelden</Button>
       </div>
