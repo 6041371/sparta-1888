@@ -100,6 +100,7 @@ export function TeamShell({ children }: { children: React.ReactNode }) {
             {formatRemaining(shown)}
           </div>
         </header>
+        <p className="level-note">Pak het eindrapport en vul het onderzoeksblad in.</p>
         {state.event.status === "paused" ? <div className="banner" style={{ marginBottom: 12 }}>Het spel is gepauzeerd door de organisatie.</div> : null}
         {state.event.status === "lobby" ? <div className="banner" style={{ marginBottom: 12 }}>De instructeur heeft het onderzoek nog niet gestart.</div> : null}
         {state.event.status === "finished" ? <div className="banner" style={{ marginBottom: 12 }}>Dit evenement is afgelopen.</div> : null}

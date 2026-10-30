@@ -316,6 +316,17 @@ input[type="checkbox"] {
 .timer.m5, .timer.m1, .timer.done { color: #ffb4b4; }
 .timer.m1 { animation: pulse 1s ease-in-out infinite; }
 
+.level-note {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  background: #ffe200;
+  color: #0c1f16;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: center;
+  line-height: 1.3;
+}
 .banner {
   border-radius: 16px;
   padding: 12px 14px;
